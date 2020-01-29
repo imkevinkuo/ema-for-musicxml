@@ -20,8 +20,14 @@ def get_score_info(score: stream.Score):
     return score_info
 
 
-# list of EmaRange -> list of int
 def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
+    """ Converts a list of EmaRanges to a list of ints.
+        :param list(EmaRange) ema_range_list: A list of ranges, e.g. measure selections, single-staff beat selections
+        :param dict(str, dict) score_info   : Contains 'start'/'end' values for measure, staff, and beat
+        :param str unit                     : the type of range we are trying to evaluate ('measure'/'staff'/'beat')
+        :param int measure_num              : for unit='beat' only, measure number of this particular beat selection
+        :return list(int) ema_list          : expanded values specified in the EmaRanges
+    """
     ema_list = []
     for ema_range in ema_range_list:
         start = score_info[unit].get(ema_range.start, ema_range.start)

@@ -59,10 +59,3 @@ def ema_token(token):
     if token == 'all' or token == 'start' or token == 'end':
         return token
     return int(token)
-
-
-class EmaMeasure(object):
-    """ hmm """
-    def __init__(self, measure, st_range, bt_range):
-        self.measure = measure
-        self.selection = None
