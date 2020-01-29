@@ -5,7 +5,7 @@ from ema2.exceptions import BadApiRequest
 
 class EmaExpression(object):
     """ A class to parse an EMA expression. Sub-objects are organized to reflect user input.
-        We can't do any more simplifying than this without looking at the score.
+        'all' is converted to 'start-end'; 'start', 'end', tokens are preserved; they will be evaluated during slicing.
     """
     def __init__(self, measures, staves, beats, completeness=None):
         # self.requested_measures = measures
@@ -29,6 +29,8 @@ class EmaRange(object):
         x = range_str.split("-")
         start, end = ema_token(x[0]), ema_token(x[-1])
         if start == 'end' and end != 'end':
+            raise BadApiRequest
+        if end == 'start' and start != 'start':
             raise BadApiRequest
         if start == 'all' and end == 'all':
             start, end = 'start', 'end'
