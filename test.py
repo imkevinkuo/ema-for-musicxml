@@ -11,4 +11,3 @@ beats = "@all"
 # beats = "@all,@all,@all,@1-2@3+@all+@all+@all,@all+@all,@all"
 completeness = None
 ema_exp = emaexpression.EmaExpression(measures, staves, beats, completeness)
-new_score = slicer.slice_score(score, ema_exp)

@@ -4,8 +4,10 @@ from ema2.exceptions import BadApiRequest
 
 
 class EmaExpression(object):
-    """ A class to parse an EMA expression. Sub-objects are organized to reflect user input.
-        'all' is converted to 'start-end'; 'start', 'end', tokens are preserved; they will be evaluated during slicing.
+    """ Represents an EMA expression as inputted by a user; no expansion or evaluation of tokens are done yet.
+        We cannot yet represent the request as a single nested structure because ranges including
+        'start/end' contain an indeterminate number of measures/beats/staves.
+        'all' is converted to 'start','end'.
     """
     def __init__(self, measures, staves, beats, completeness=None):
         # self.requested_measures = measures
@@ -24,7 +26,7 @@ class EmaExpression(object):
 
 
 class EmaRange(object):
-    """ idk """
+    """ Represents a (start, end) pair given in an EMA expression. """
     def __init__(self, range_str):
         x = range_str.split("-")
         start, end = ema_token(x[0]), ema_token(x[-1])
