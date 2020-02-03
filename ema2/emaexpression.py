@@ -1,5 +1,3 @@
-import itertools
-
 from ema2.exceptions import BadApiRequest
 
 

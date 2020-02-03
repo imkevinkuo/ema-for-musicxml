@@ -4,6 +4,8 @@ from xml.dom import minidom
 
 from ema2.emaexpression import EmaExpression
 
+""" Contains functions/imports that read score data in order to convert from EmaExpression to EmaExpressionFull."""
+
 
 class EmaExpressionFull(object):
     """ Represents an EMA expression after evaluation of 'start/end' tokens and expansion of all ranges. """
@@ -56,28 +58,6 @@ def expand_ema_exp(score_info: dict, ema_exp: EmaExpression):
     return ema_measures
 
 
-def get_score_info_m21(score: stream.Score):
-    score_info = {'measure': {},
-                  'staff': {
-                      'start': 1
-                  },
-                  'beat': {
-                      'start': 1
-                      # 'end': {measure_num: num_of_beats}
-                  }}
-    measures = score.parts[0].getElementsByClass(stream.Measure)
-    score_info['measure']['start'] = measures[0].measureNumber
-    score_info['measure']['end'] = measures[-1].measureNumber
-    score_info['staff']['end'] = len(score.parts)
-    # PyCharm gives an 'unexpected type' warning because 'start' maps to int while 'end' maps to dict
-    score_info['beat']['end'] = {m.measureNumber: m.bestTimeSignature().numerator for m in measures}
-    return score_info
-
-
-def get_score_info_mxl(score: minidom.Document):
-    return {}
-
-
 def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
     """ Converts a list of EmaRanges to a list of ints.
         :param list(EmaRange) ema_range_list: A list of ranges, e.g. measure selections, single-staff beat selections
@@ -97,3 +77,26 @@ def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
             end = score_info[unit].get(ema_range.end, ema_range.end)
         ema_list += [x for x in range(start, end + 1)]
     return ema_list
+
+
+def get_score_info_m21(score: stream.Score):
+    score_info = {'measure': {},
+                  'staff': {
+                      'start': 1
+                  },
+                  'beat': {
+                      'start': 1
+                      # 'end': {measure_num: num_of_beats}
+                  }}
+    measures = score.parts[0].getElementsByClass(stream.Measure)
+    score_info['measure']['start'] = measures[0].measureNumber
+    score_info['measure']['end'] = measures[-1].measureNumber
+    score_info['staff']['end'] = len(score.parts)
+    # PyCharm gives an 'unexpected type' warning because 'start' maps to int while 'end' maps to dict
+    score_info['beat']['end'] = {m.measureNumber: m.bestTimeSignature().numerator for m in measures}
+    return score_info
+
+
+def get_score_info_mxl(score: minidom.Document):
+    # TODO
+    return {}
