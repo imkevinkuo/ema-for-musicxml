@@ -12,3 +12,7 @@ completeness = None
 ema_exp = emaexpression.EmaExpression(measures, staves, beats, completeness)
 score_info = emaexpressionfull.get_score_info_m21(score)
 ema_exp_full = emaexpressionfull.EmaExpressionFull(score_info, ema_exp)
+
+import xml.etree.ElementTree as ET
+tree = ET.parse('tests/bwv269.xml')
+root = tree.getroot()
