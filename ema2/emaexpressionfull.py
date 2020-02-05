@@ -1,8 +1,8 @@
 from typing import List
 from music21 import stream
-from xml.dom import minidom
+import xml.etree.ElementTree as ET
 
-from ema2.emaexpression import EmaExpression
+from ema2.emaexpression import EmaExpression, EmaRange
 
 """ Contains functions/imports that read score data in order to convert from EmaExpression to EmaExpressionFull."""
 
@@ -15,14 +15,14 @@ class EmaExpressionFull(object):
 
 
 class EmaStaff(object):
-    def __init__(self, staff: int, beats: List[int] = []):
-        self.staff = staff
+    def __init__(self, num: int, beats: List[int] = []):
+        self.num = num
         self.beats = beats
 
 
 class EmaMeasure(object):
-    def __init__(self, measure: int, staves: List[EmaStaff] = []):
-        self.measure = measure
+    def __init__(self, num: int, staves: List[EmaStaff] = []):
+        self.num = num
         self.staves = staves
 
 
@@ -58,13 +58,13 @@ def expand_ema_exp(score_info: dict, ema_exp: EmaExpression):
     return ema_measures
 
 
-def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
+def ema_to_list(ema_range_list: List[EmaRange], score_info, unit, measure_num=None):
     """ Converts a list of EmaRanges to a list of ints.
-        :param list(EmaRange) ema_range_list: A list of ranges, e.g. measure selections, single-staff beat selections
-        :param dict(str, dict) score_info   : Contains 'start'/'end' values for measure, staff, and beat
-        :param str unit                     : the type of range we are trying to evaluate ('measure'/'staff'/'beat')
-        :param int measure_num              : for unit='beat' only, measure number of this particular beat selection
-        :return list(int) ema_list          : expanded values specified in the EmaRanges
+        :param ema_range_list : A list of ranges, e.g. measure selections, single-staff beat selections
+        :param score_info     : Dict of {'measure/staff/beat': 'start'/'end': values}
+        :param unit           : the type of range we are trying to evaluate ('measure'/'staff'/'beat')
+        :param measure_num    : for unit='beat' only, measure number of this particular beat selection
+        :return ema_list      : List[int] of all values specified in the EmaRanges
     """
     ema_list = []
     for ema_range in ema_range_list:
@@ -72,7 +72,8 @@ def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
         if unit == 'beat':
             end = score_info[unit].get(ema_range.end, ema_range.end)
             if ema_range.end == 'end':  # end is dict of {measure_num: num_of_beats}
-                end = end[measure_num]
+                # Some measure ids might be strings?
+                end = end[str(measure_num)]
         else:
             end = score_info[unit].get(ema_range.end, ema_range.end)
         ema_list += [x for x in range(start, end + 1)]
@@ -97,6 +98,21 @@ def get_score_info_m21(score: stream.Score):
     return score_info
 
 
-def get_score_info_mxl(score: minidom.Document):
-    # TODO
-    return {}
+def get_score_info_mxl(tree: ET.ElementTree):
+    score_info = {'measure': {},
+                  'staff': {
+                      'start': 1
+                  },
+                  'beat': {
+                      'start': 1
+                      # 'end': {measure_num: num_of_beats}
+                  }}
+    parts = tree.getroot().findall('part')
+    measures = parts[0].findall('measure')
+    score_info['measure']['start'] = int(measures[0].attrib['number'])
+    score_info['measure']['end'] = int(measures[-1].attrib['number'])
+    score_info['staff']['end'] = len(parts)
+    # have to traverse entire tree for this?
+    # TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
+    score_info['beat']['end'] = {m.attrib['number']: 3 for m in measures}
+    return score_info
