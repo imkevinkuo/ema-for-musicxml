@@ -2,15 +2,16 @@ from typing import List
 from music21 import stream
 import xml.etree.ElementTree as ET
 
-from ema2.emaexpression import EmaExpression, EmaRange
+from ema2.emaexp import EmaExp
 
 """ Contains functions/imports that read score data in order to convert from EmaExpression to EmaExpressionFull."""
 
 
-class EmaExpressionFull(object):
+class EmaExpFull(object):
     """ Represents an EMA expression after evaluation of 'start/end' tokens and expansion of all ranges. """
 
-    def __init__(self, score_info: dict, ema_exp: EmaExpression):
+    def __init__(self, score_info: dict, ema_exp: EmaExp):
+        self.score_info = score_info
         self.selection = expand_ema_exp(score_info, ema_exp)  # list of EmaMeasure
 
 
@@ -26,7 +27,11 @@ class EmaMeasure(object):
         self.staves = staves
 
 
-def expand_ema_exp(score_info: dict, ema_exp: EmaExpression):
+def expand_ema_exp(score_info, ema_exp):
+    """ Converts an EmaExpression to a List[EmaMeasure].
+        :param score_info : Dict of {'measure/staff/beat': 'start'/'end': values}
+        :param ema_exp    : An EmaExp representing the input string e.g. all/all/@all
+    """
     ema_measures = []
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info, 'measure')
     for m in range(len(measure_nums)):
@@ -58,9 +63,9 @@ def expand_ema_exp(score_info: dict, ema_exp: EmaExpression):
     return ema_measures
 
 
-def ema_to_list(ema_range_list: List[EmaRange], score_info, unit, measure_num=None):
+def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
     """ Converts a list of EmaRanges to a list of ints.
-        :param ema_range_list : A list of ranges, e.g. measure selections, single-staff beat selections
+        :param ema_range_list : List[EmaRange] describing a set of measures, staves, or beats.
         :param score_info     : Dict of {'measure/staff/beat': 'start'/'end': values}
         :param unit           : the type of range we are trying to evaluate ('measure'/'staff'/'beat')
         :param measure_num    : for unit='beat' only, measure number of this particular beat selection

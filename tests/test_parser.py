@@ -1,12 +1,12 @@
 import unittest
-from ema2.emaexpression import EmaExpression
+from ema2.emaexp import EmaExp
 
 expr_strs = ["18-18/2+4/@all"]
 
 
 class ParserTest0(unittest.TestCase):
     def test_0(self):
-        ema_expr = EmaExpression(*expr_strs[0].split("/"))
+        ema_expr = EmaExp(*expr_strs[0].split("/"))
         self.assertEqual(len(ema_expr.mm_ranges), 1)
         self.assertEqual(ema_expr.mm_ranges[0].start, 18)
         self.assertEqual(ema_expr.mm_ranges[0].end, 18)

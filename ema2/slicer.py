@@ -1,15 +1,22 @@
 import xml.etree.ElementTree as ET
-from ema2.emaexpressionfull import EmaExpressionFull
+from ema2.emaexpfull import EmaExpFull
 
 
-# partwise - also only works on .musicxml, not .mxl (compressed format)
-# restrict inputs to ascending order, non repeating, use deletion-based approach
-def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpressionFull):
+def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpFull):
+    """ for selecting from a partwise .musicxml file
+        uses a deletion based-approach, so ema_exp needs to non-repeating + ascending
+    """
+    ema_measures = ema_exp_full.selection
+    ind = 0
+    parts = tree.findall("part")
+    for ema_measure in ema_measures:
+        # discard measures not == to ema_measure.num
+        for part in parts:
+            while int(part[ind].attrib['number']) < ema_measure.num:
+                part.remove(part[ind])
+        ind += 1
+    # discard trailing measures
+    for part in parts:
+        while len(part) > ind:
+            part.remove(part[ind])
     return tree
-
-
-def append_beats(new_measure, beats, old_measure):
-    for x in old_measure:
-        # if x.tag == 'note' or x.tag == 'rest':
-        new_measure.append(x)
-    return new_measure

@@ -1,7 +1,7 @@
 from ema2.exceptions import BadApiRequest
 
 
-class EmaExpression(object):
+class EmaExp(object):
     """ Represents an EMA expression as inputted by a user; no expansion or evaluation of tokens are done yet.
         We cannot yet represent the request as a single nested structure because ranges including
         'start/end' contain an indeterminate number of measures/beats/staves.

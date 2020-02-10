@@ -1,6 +1,9 @@
 from flask import Flask, send_file
-from ema2 import slicer, emaexpression
-from music21 import converter, environment, stream
+from ema2 import slicer
+from ema2.emaexp import EmaExp
+from ema2.emaexpfull import EmaExpFull
+import xml.etree.ElementTree as ET
+
 app = Flask(__name__)
 
 
@@ -16,14 +19,11 @@ def index():
     '/<path:path>/<measures>/<staves>/<beats>/<completeness>',
     methods=["GET"])
 def address(path, measures, staves, beats, completeness=None):
-    """ Before constructing the EmaExpression, we determine some basic features of the score.
-        e.g. first/last measure number, number of staves. """
-    score: stream.Score = converter.parse(path)
-    ema_exp = emaexpression.EmaExpression(measures, staves, beats, completeness)
+    score = ET.parse(path)
+    ema_exp = EmaExpFull(EmaExp(measures, staves, beats, completeness))
     file_path = slicer.slice_score(score, ema_exp)
     return send_file(file_path)
 
 
 if __name__ == "__main__":
-    environment.set('autoDownload', 'allow')
     app.run(debug=True)
