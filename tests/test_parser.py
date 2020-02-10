@@ -4,7 +4,7 @@ from ema2.emaexpression import EmaExpression
 expr_strs = ["18-18/2+4/@all"]
 
 
-class ParserTest1(unittest.TestCase):
+class ParserTest0(unittest.TestCase):
     def test_0(self):
         ema_expr = EmaExpression(*expr_strs[0].split("/"))
         self.assertEqual(len(ema_expr.mm_ranges), 1)
