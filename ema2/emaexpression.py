@@ -59,3 +59,4 @@ def ema_token(token):
     if token == 'all' or token == 'start' or token == 'end':
         return token
     return int(token)
+

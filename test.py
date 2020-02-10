@@ -12,5 +12,5 @@ completeness = None
 ema_exp = emaexpression.EmaExpression(measures, staves, beats, completeness)
 score_info = emaexpressionfull.get_score_info_mxl(tree)
 ema_exp_full = emaexpressionfull.EmaExpressionFull(score_info, ema_exp)
-resp = slicer.slice_score(tree, ema_exp_full)
-resp.write('test.xml')
+# resp = slicer.slice_score(tree, ema_exp_full)
+# resp.write('test.xml')
