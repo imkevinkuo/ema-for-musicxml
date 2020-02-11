@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 from ema2 import emaexp, emaexpfull, slicer
 path = "tests/bwv269.xml"
 tree = ET.parse(path)
-measures = "start-1"
+measures = "0,2"
 staves = "all"
 beats = "@all"
 # measures = "1-3,4,5-6"

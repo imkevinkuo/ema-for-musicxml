@@ -1,5 +1,4 @@
-from typing import List
-from music21 import stream
+from typing import List, Dict
 import xml.etree.ElementTree as ET
 
 from ema2.emaexp import EmaExp
@@ -15,14 +14,14 @@ class EmaExpFull(object):
         self.selection = expand_ema_exp(score_info, ema_exp)  # list of EmaMeasure
 
 
-class EmaStaff(object):
-    def __init__(self, num: int, beats: List[int] = []):
-        self.num = num
-        self.beats = beats
+# class EmaStaff(object):
+#     def __init__(self, num: int, beats: List[int] = []):
+#         self.num = num
+#         self.beats = beats
 
 
 class EmaMeasure(object):
-    def __init__(self, num: int, staves: List[EmaStaff] = []):
+    def __init__(self, num: int, staves: Dict[int, List[int]] = {}):
         self.num = num
         self.staves = staves
 
@@ -42,7 +41,7 @@ def expand_ema_exp(score_info, ema_exp):
         if len(ema_exp.st_ranges) == 1:
             m2 = 0
 
-        ema_staves = []
+        ema_staves = {}
         stave_nums = ema_to_list(ema_exp.st_ranges[m2], score_info, 'staff')
         for s in range(len(stave_nums)):
             stave_num = stave_nums[s]
@@ -56,7 +55,7 @@ def expand_ema_exp(score_info, ema_exp):
                 s2 = 0
 
             staff_beats = ema_to_list(ema_exp.bt_ranges[m2][s2], score_info, 'beat', measure_num)
-            ema_staves.append(EmaStaff(stave_num, staff_beats))
+            ema_staves[stave_num] = staff_beats
 
         ema_measure = EmaMeasure(measure_num, ema_staves)
         ema_measures.append(ema_measure)
@@ -85,39 +84,26 @@ def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
     return ema_list
 
 
-def get_score_info_m21(score: stream.Score):
-    score_info = {'measure': {},
-                  'staff': {
-                      'start': 1
-                  },
-                  'beat': {
-                      'start': 1
-                      # 'end': {measure_num: num_of_beats}
-                  }}
-    measures = score.parts[0].getElementsByClass(stream.Measure)
-    score_info['measure']['start'] = measures[0].measureNumber
-    score_info['measure']['end'] = measures[-1].measureNumber
-    score_info['staff']['end'] = len(score.parts)
-    # PyCharm gives an 'unexpected type' warning because 'start' maps to int while 'end' maps to dict
-    score_info['beat']['end'] = {m.measureNumber: m.bestTimeSignature().numerator for m in measures}
-    return score_info
-
-
 def get_score_info_mxl(tree: ET.ElementTree):
     score_info = {'measure': {},
                   'staff': {
                       'start': 1
                   },
                   'beat': {
-                      'start': 1
-                      # 'end': {measure_num: num_of_beats}
+                      'start': 1,
+                      'end': {}  # measure_num: num_of_beats
                   }}
     parts = tree.getroot().findall('part')
     measures = parts[0].findall('measure')
     score_info['measure']['start'] = int(measures[0].attrib['number'])
     score_info['measure']['end'] = int(measures[-1].attrib['number'])
     score_info['staff']['end'] = len(parts)
-    # have to traverse entire tree for this?
+    time_sig = None  # tuple of numerator, denominator
+    for measure in measures:
+        attributes = measure.find("attributes")
+        if attributes:
+            time = attributes.find("time")
+            time_sig = (int(time.find("beats").text), int(time.find("beat-type").text))
+        score_info['beat']['end'][measure.attrib['number']] = time_sig[0]
     # TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
-    score_info['beat']['end'] = {m.attrib['number']: 3 for m in measures}
     return score_info
