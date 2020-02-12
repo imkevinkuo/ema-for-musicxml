@@ -128,15 +128,6 @@
           <text>Mor</text>
         </lyric>
       </note>
-      <note default-x="88.42" default-y="-25">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem>up</stem>
-      </note>
       <note default-x="128.62" default-y="-30">
         <pitch>
           <step>G</step>
