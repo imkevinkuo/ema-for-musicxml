@@ -32,9 +32,10 @@ def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpFull):
                         note = notes[n]
                         duration = int(note.find("duration").text)
                         if (time / divisions) + 1 not in beats:
-                            rest = None  # how do i make a rest
-                            measure.insert(n, rest)
-                            measure.remove(note)
+                            note.remove(note.find("pitch"))
+                            # insert a rest object in the note
+                            # remove everything that isn't duration, type, or voice
+                            note.insert()
                         time += duration
                 # else, blank measure
                 else:
