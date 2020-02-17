@@ -7,22 +7,19 @@ from ema2.emaexp import EmaExp
 
 
 class EmaExpFull(object):
-    """ Represents an EMA expression after evaluation of 'start/end' tokens and expansion of all ranges. """
+    """ Represents an EMA expression after evaluation of 'start/end' tokens and expansion of all ranges.
+
+        EMA does not require us to store the "order" of requested measures; just which measures are requested.
+        Our XML slicing will preserve the existing order since we will simply delete non-requested measures.
+    """
 
     def __init__(self, score_info: dict, ema_exp: EmaExp):
         self.score_info = score_info
-        self.selection = expand_ema_exp(score_info, ema_exp)  # list of EmaMeasure
-
-
-# class EmaStaff(object):
-#     def __init__(self, num: int, beats: List[int] = []):
-#         self.num = num
-#         self.beats = beats
+        self.selection = expand_ema_exp(score_info, ema_exp)  # dict{str (measure label):EmaMeasure}
 
 
 class EmaMeasure(object):
-    def __init__(self, num: int, staves: Dict[int, List[int]] = {}):
-        self.num = num
+    def __init__(self, staves: Dict[int, List[int]] = {}):
         self.staves = staves
 
 
@@ -31,10 +28,10 @@ def expand_ema_exp(score_info, ema_exp):
         :param score_info : Dict of {'measure/staff/beat': 'start'/'end': values}
         :param ema_exp    : An EmaExp representing the input string e.g. all/all/@all
     """
-    ema_measures = []
+    ema_measures = {}
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info, 'measure')
     for m in range(len(measure_nums)):
-        measure_num = measure_nums[m]
+        measure_num = str(measure_nums[m])
 
         # Handle expression like 1-3/@all/... (staff expression mapping to multiple measures)
         m2 = m
@@ -57,8 +54,7 @@ def expand_ema_exp(score_info, ema_exp):
             staff_beats = ema_to_list(ema_exp.bt_ranges[m2][s2], score_info, 'beat', measure_num)
             ema_staves[stave_num] = staff_beats
 
-        ema_measure = EmaMeasure(measure_num, ema_staves)
-        ema_measures.append(ema_measure)
+        ema_measures[measure_num] = EmaMeasure(ema_staves)
     return ema_measures
 
 
@@ -77,7 +73,7 @@ def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
             end = score_info[unit].get(ema_range.end, ema_range.end)
             if ema_range.end == 'end':  # end is dict of {measure_num: num_of_beats}
                 # Some measure ids might be strings?
-                end = end[str(measure_num)]
+                end = end[measure_num]
         else:
             end = score_info[unit].get(ema_range.end, ema_range.end)
         ema_list += [x for x in range(start, end + 1)]

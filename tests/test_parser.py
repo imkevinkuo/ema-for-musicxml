@@ -47,6 +47,17 @@ class ParserTest0(unittest.TestCase):
                 ema_expr = EmaExp(*ema_expr_list)
                 self.assertIsNotNone(ema_expr)
 
+    def test_simplify_expr(self):
+        """
+        Rules for parser expressions:
+
+        2,1/all/@all - allow: return in order
+        2,2/all@all - allow: simplify so no duplicates
+        how do i handle repeats?
+
+        """
+        self.assertTrue(False)
+
 
 def get_nanopub_jsonlds(page_num):
     r = requests.get(f"{NANOPUB_URL}/nanopubs.html?page={page_num}")
