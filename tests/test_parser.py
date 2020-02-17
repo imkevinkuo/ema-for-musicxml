@@ -55,6 +55,12 @@ class ParserTest0(unittest.TestCase):
         2,2/all@all - allow: simplify so no duplicates
         how do i handle repeats?
 
+        expr that maps to entire xml:
+        start-10,11-end/all/@all
+        all/all/@all
+        start-10,11-end/all,all/@all
+        0-21/all/@all
+
         """
         self.assertTrue(False)
 
