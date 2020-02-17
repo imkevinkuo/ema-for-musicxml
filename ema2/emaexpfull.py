@@ -54,7 +54,19 @@ def expand_ema_exp(score_info, ema_exp):
             staff_beats = ema_to_list(ema_exp.bt_ranges[m2][s2], score_info, 'beat', measure_num)
             ema_staves[stave_num] = staff_beats
 
-        ema_measures[measure_num] = EmaMeasure(ema_staves)
+        ema_measure = EmaMeasure(ema_staves)
+        if measure_num in ema_measures:  # existing measure, union staves
+            old_staves = ema_measures[measure_num].staves
+            new_staves = ema_measure.staves
+            for staff_num in new_staves:
+                if staff_num in old_staves:  # existing staff, union beats
+                    for x in new_staves[staff_num]: # this is hacky, we need to do something with sets
+                        if x not in old_staves[staff_num]:
+                            old_staves[staff_num].append(x)
+                else:
+                    old_staves[staff_num] = new_staves[staff_num]
+        else:
+            ema_measures[measure_num] = ema_measure
     return ema_measures
 
 
