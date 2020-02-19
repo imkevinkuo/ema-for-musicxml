@@ -2,14 +2,14 @@ import xml.etree.ElementTree as ET
 from ema2.emaexpfull import EmaExpFull
 
 
-def convert_to_rest(note):
+def convert_to_rest(note: ET.Element):
     # remove everything that isn't duration, type, voice, or lyrics
     note_remove = ["pitch", "stem"]
     for r in note_remove:
         note_elem = note.find(r)
         if note_elem:
             note.remove(note_elem)
-    note.insert(ET.Element("rest"))
+    note.insert(0, ET.Element("rest"))
 
 
 def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpFull):
