@@ -1,4 +1,5 @@
 import unittest
+import tests.scraper
 from music21 import corpus
 
 

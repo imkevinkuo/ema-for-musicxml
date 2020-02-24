@@ -13,22 +13,21 @@ class EmaExpFull(object):
         Our XML slicing will preserve the existing order since we will simply delete non-requested measures.
     """
 
-    def __init__(self, score_info: dict, ema_exp: EmaExp):
+    def __init__(self, score_info: dict, ema_exp: EmaExp, partwise=False):
         self.score_info = score_info
-        self.selection = expand_ema_exp(score_info, ema_exp)  # dict{str (measure label):EmaMeasure}
+        self.partwise = partwise
+        self.selection = expand_ema_exp(score_info, ema_exp, partwise)
+        # selection[measure #] = dict: {staff #: set(requested beats)}
+        # selection[measure #][staff #] = set(requested beats)
 
 
-class EmaMeasure(object):
-    def __init__(self, staves: Dict[int, List[int]] = {}):
-        self.staves = staves
-
-
-def expand_ema_exp(score_info, ema_exp):
+def expand_ema_exp(score_info, ema_exp, partwise):
     """ Converts an EmaExpression to a List[EmaMeasure].
         :param score_info : Dict of {'measure/staff/beat': 'start'/'end': values}
         :param ema_exp    : An EmaExp representing the input string e.g. all/all/@all
+        :param partwise   :
     """
-    ema_measures = {}
+    selection = {}
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info, 'measure')
     for m in range(len(measure_nums)):
         measure_num = str(measure_nums[m])
@@ -38,7 +37,6 @@ def expand_ema_exp(score_info, ema_exp):
         if len(ema_exp.st_ranges) == 1:
             m2 = 0
 
-        ema_staves = {}
         stave_nums = ema_to_list(ema_exp.st_ranges[m2], score_info, 'staff')
         for s in range(len(stave_nums)):
             stave_num = stave_nums[s]
@@ -52,22 +50,31 @@ def expand_ema_exp(score_info, ema_exp):
                 s2 = 0
 
             staff_beats = ema_to_list(ema_exp.bt_ranges[m2][s2], score_info, 'beat', measure_num)
-            ema_staves[stave_num] = staff_beats
 
-        ema_measure = EmaMeasure(ema_staves)
-        if measure_num in ema_measures:  # existing measure, union staves
-            old_staves = ema_measures[measure_num].staves
-            new_staves = ema_measure.staves
-            for staff_num in new_staves:
-                if staff_num in old_staves:  # existing staff, union beats
-                    for x in new_staves[staff_num]: # this is hacky, we need to do something with sets
-                        if x not in old_staves[staff_num]:
-                            old_staves[staff_num].append(x)
+            # Insert beats into selection
+            if partwise:
+                if stave_num not in selection:
+                    selection[stave_num] = {measure_num: staff_beats}
                 else:
-                    old_staves[staff_num] = new_staves[staff_num]
-        else:
-            ema_measures[measure_num] = ema_measure
-    return ema_measures
+                    sel_measures = selection[stave_num]
+                    if measure_num in sel_measures:
+                        for x in staff_beats:
+                            if x not in sel_measures[measure_num]:
+                                sel_measures[measure_num].append(x)
+                    else:
+                        sel_measures[measure_num] = staff_beats
+            else:
+                if measure_num not in selection:
+                    selection[measure_num] = {stave_num: staff_beats}
+                else:
+                    sel_staves = selection[measure_num]
+                    if stave_num in sel_staves:
+                        for x in staff_beats:
+                            if x not in sel_staves[stave_num]:
+                                sel_staves[stave_num].append(x)
+                    else:
+                        sel_staves[stave_num] = staff_beats
+    return selection
 
 
 def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
@@ -81,13 +88,11 @@ def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
     ema_list = []
     for ema_range in ema_range_list:
         start = score_info[unit].get(ema_range.start, ema_range.start)
-        if unit == 'beat':
-            end = score_info[unit].get(ema_range.end, ema_range.end)
-            if ema_range.end == 'end':  # end is dict of {measure_num: num_of_beats}
-                # Some measure ids might be strings?
-                end = end[measure_num]
-        else:
-            end = score_info[unit].get(ema_range.end, ema_range.end)
+        end = score_info[unit].get(ema_range.end, ema_range.end)
+        if unit == 'beat' and ema_range.end == 'end':
+            end = end[measure_num]
+        # TODO: For measures, may have to traverse the XML and grab measure "numbers"
+        # TODO: Or just use ranges while traversing XML
         ema_list += [x for x in range(start, end + 1)]
     return ema_list
 

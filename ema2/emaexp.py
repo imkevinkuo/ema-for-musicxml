@@ -22,6 +22,10 @@ class EmaExp(object):
                            for stave_req_str in measure_req_str.split("+")]
                           for measure_req_str in beats.split(',')]
 
+    @classmethod
+    def fromstring(cls, selection):
+        return cls(*selection.split("/"))
+
 
 class EmaRange(object):
     """ Represents a (start, end) pair given in an EMA expression. """
