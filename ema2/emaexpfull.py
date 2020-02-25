@@ -13,19 +13,18 @@ class EmaExpFull(object):
         Our XML slicing will preserve the existing order since we will simply delete non-requested measures.
     """
 
-    def __init__(self, score_info: dict, ema_exp: EmaExp, partwise=False):
+    def __init__(self, score_info: dict, ema_exp: EmaExp):
         self.score_info = score_info
-        self.partwise = partwise
-        self.selection = expand_ema_exp(score_info, ema_exp, partwise)
+        self.selection = expand_ema_exp(score_info, ema_exp)
         # selection[measure #] = dict: {staff #: set(requested beats)}
         # selection[measure #][staff #] = set(requested beats)
 
 
-def expand_ema_exp(score_info, ema_exp, partwise):
-    """ Converts an EmaExpression to a List[EmaMeasure].
-        :param score_info : Dict of {'measure/staff/beat': 'start'/'end': values}
-        :param ema_exp    : An EmaExp representing the input string e.g. all/all/@all
-        :param partwise   :
+def expand_ema_exp(score_info, ema_exp):
+    """ Converts an EmaExpression to a List[EmaMeasure]. We use a measure-wise representation
+        in order to properly handle measure deletion.
+        e.g. selected measure + non-selected stave -> blank measure
+        e.g. non-selected measure -> delete measure
     """
     selection = {}
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info, 'measure')
@@ -52,28 +51,16 @@ def expand_ema_exp(score_info, ema_exp, partwise):
             staff_beats = ema_to_list(ema_exp.bt_ranges[m2][s2], score_info, 'beat', measure_num)
 
             # Insert beats into selection
-            if partwise:
-                if stave_num not in selection:
-                    selection[stave_num] = {measure_num: staff_beats}
-                else:
-                    sel_measures = selection[stave_num]
-                    if measure_num in sel_measures:
-                        for x in staff_beats:
-                            if x not in sel_measures[measure_num]:
-                                sel_measures[measure_num].append(x)
-                    else:
-                        sel_measures[measure_num] = staff_beats
+            if measure_num not in selection:
+                selection[measure_num] = {stave_num: staff_beats}
             else:
-                if measure_num not in selection:
-                    selection[measure_num] = {stave_num: staff_beats}
+                sel_staves = selection[measure_num]
+                if stave_num in sel_staves:
+                    for x in staff_beats:
+                        if x not in sel_staves[stave_num]:
+                            sel_staves[stave_num].append(x)
                 else:
-                    sel_staves = selection[measure_num]
-                    if stave_num in sel_staves:
-                        for x in staff_beats:
-                            if x not in sel_staves[stave_num]:
-                                sel_staves[stave_num].append(x)
-                    else:
-                        sel_staves[stave_num] = staff_beats
+                    sel_staves[stave_num] = staff_beats
     return selection
 
 
