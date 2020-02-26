@@ -1,9 +1,5 @@
-from typing import List, Dict
 import xml.etree.ElementTree as ET
-
 from ema2.emaexp import EmaExp
-
-""" Contains functions/imports that read score data in order to convert from EmaExpression to EmaExpressionFull."""
 
 
 class EmaExpFull(object):
@@ -15,7 +11,7 @@ class EmaExpFull(object):
 
     def __init__(self, score_info: dict, ema_exp: EmaExp):
         self.score_info = score_info
-        self.selection = expand_ema_exp(score_info, ema_exp)
+        self.selection, self.selected_staves = expand_ema_exp(score_info, ema_exp)
         # selection[measure #] = dict: {staff #: set(requested beats)}
         # selection[measure #][staff #] = set(requested beats)
 
@@ -27,6 +23,7 @@ def expand_ema_exp(score_info, ema_exp):
         e.g. non-selected measure -> delete measure
     """
     selection = {}
+    selected_staves = set()
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info, 'measure')
     for m in range(len(measure_nums)):
         measure_num = str(measure_nums[m])
@@ -39,6 +36,7 @@ def expand_ema_exp(score_info, ema_exp):
         stave_nums = ema_to_list(ema_exp.st_ranges[m2], score_info, 'staff')
         for s in range(len(stave_nums)):
             stave_num = stave_nums[s]
+            selected_staves.add(stave_num)
 
             # Handle expressions like 1,2/1+2,2+3/@1-2 and 1,2/1+2,2+3/@1-2,@all
             # (single beat expression mapping to multiple staves/measures)
@@ -61,7 +59,7 @@ def expand_ema_exp(score_info, ema_exp):
                             sel_staves[stave_num].append(x)
                 else:
                     sel_staves[stave_num] = staff_beats
-    return selection
+    return selection, selected_staves
 
 
 def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
@@ -77,13 +75,14 @@ def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
         start = score_info[unit].get(ema_range.start, ema_range.start)
         end = score_info[unit].get(ema_range.end, ema_range.end)
         if unit == 'beat' and ema_range.end == 'end':
-            end = end[measure_num]
+            end = end[measure_num][0]
         # TODO: For measures, may have to traverse the XML and grab measure "numbers"
         # TODO: Or just use ranges while traversing XML
         ema_list += [x for x in range(start, end + 1)]
     return ema_list
 
 
+# TODO: Maybe we need another dict for attribute by measure.
 def get_score_info_mxl(tree: ET.ElementTree):
     score_info = {'measure': {},
                   'staff': {
@@ -104,6 +103,6 @@ def get_score_info_mxl(tree: ET.ElementTree):
         if attributes:
             time = attributes.find("time")
             time_sig = (int(time.find("beats").text), int(time.find("beat-type").text))
-        score_info['beat']['end'][measure.attrib['number']] = time_sig[0]
+        score_info['beat']['end'][measure.attrib['number']] = time_sig
     # TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
     return score_info

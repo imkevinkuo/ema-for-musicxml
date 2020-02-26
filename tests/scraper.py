@@ -44,13 +44,22 @@ def ema_exps_from_page(page_num):
 
 # We need to construct a dictionary[score_name][ema_string] = selection xml.
 # Script to download all files and convert to xml.
-def idk(page_num):
+def get_omas_and_ema2_trees(npub_num):
+    """ Takes a single nanopub and executes the following steps:
+    1. Converts the MEI score to MusicXML.
+    2. Converts the MEI selection to MusicXML.
+    3. Runs the slicer on the MEI-to-MXL score.
+    TODO: Compare the XML outputs of 2 and 3.
+    """
+    page_num = 1 + (npub_num // 1000)
+    npub_num = npub_num % 1000
+
     jsonlds = get_jsonlds(page_num)
     ema_urls = [ema_url_from_jsonld(j) for j in jsonlds]
     mei_urls = [unquote(ema_url.split("/")[-4]) for ema_url in ema_urls]
     #
-    ema_url = ema_urls[0]
-    mei_url = mei_urls[0]
+    ema_url = ema_urls[npub_num]
+    mei_url = mei_urls[npub_num]
     filename = mei_url.split("/")[-1]
     name_ext = filename.split(".")
     expr = ema_url.split("/")[-3:]
@@ -67,3 +76,4 @@ def idk(page_num):
     ema_exp_full = emaexpfull.EmaExpFull(score_info, ema_exp)
     ema2_tree = slicer.slice_score(tree, ema_exp_full)
     ##
+    return omas_tree, ema2_tree
