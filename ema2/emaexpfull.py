@@ -24,7 +24,7 @@ def expand_ema_exp(score_info, ema_exp):
     """
     selection = {}
     selected_staves = set()
-    measure_nums = ema_to_list(ema_exp.mm_ranges, score_info, 'measure')
+    measure_nums = ema_to_list(ema_exp.mm_ranges, score_info['measure'])
     for m in range(len(measure_nums)):
         measure_num = str(measure_nums[m])
 
@@ -33,7 +33,7 @@ def expand_ema_exp(score_info, ema_exp):
         if len(ema_exp.st_ranges) == 1:
             m2 = 0
 
-        stave_nums = ema_to_list(ema_exp.st_ranges[m2], score_info, 'staff')
+        stave_nums = ema_to_list(ema_exp.st_ranges[m2], score_info['staff'])
         for s in range(len(stave_nums)):
             stave_num = stave_nums[s]
             selected_staves.add(stave_num)
@@ -46,7 +46,7 @@ def expand_ema_exp(score_info, ema_exp):
             if len(ema_exp.bt_ranges[m2]) == 1:
                 s2 = 0
 
-            staff_beats = ema_to_list(ema_exp.bt_ranges[m2][s2], score_info, 'beat', measure_num)
+            staff_beats = ema_exp.bt_ranges[m2][s2]  # We will run ema_to_list while slicing.
 
             # Insert beats into selection
             if measure_num not in selection:
@@ -54,55 +54,38 @@ def expand_ema_exp(score_info, ema_exp):
             else:
                 sel_staves = selection[measure_num]
                 if stave_num in sel_staves:
-                    for x in staff_beats:
-                        if x not in sel_staves[stave_num]:
-                            sel_staves[stave_num].append(x)
+                    for ema_range in staff_beats:
+                        sel_staves[stave_num].append(ema_range)
                 else:
                     sel_staves[stave_num] = staff_beats
     return selection, selected_staves
 
 
-def ema_to_list(ema_range_list, score_info, unit, measure_num=None):
+def ema_to_list(ema_range_list, start_end):
     """ Converts a list of EmaRanges to a list of ints.
         :param ema_range_list : List[EmaRange] describing a set of measures, staves, or beats.
-        :param score_info     : Dict of {'measure/staff/beat': 'start'/'end': values}
-        :param unit           : the type of range we are trying to evaluate ('measure'/'staff'/'beat')
-        :param measure_num    : for unit='beat' only, measure number of this particular beat selection
+        :param start_end      : Dict with keys 'start' and 'end' mapped to values for this evaluation.
         :return ema_list      : List[int] of all values specified in the EmaRanges
     """
     ema_list = []
     for ema_range in ema_range_list:
-        start = score_info[unit].get(ema_range.start, ema_range.start)
-        end = score_info[unit].get(ema_range.end, ema_range.end)
-        if unit == 'beat' and ema_range.end == 'end':
-            end = end[measure_num][0]
-        # TODO: For measures, may have to traverse the XML and grab measure "numbers"
-        # TODO: Or just use ranges while traversing XML
+        start = start_end.get(ema_range.start, ema_range.start)
+        end = start_end.get(ema_range.end, ema_range.end)
+        # TODO: What if measure nums are not strictly numbers?
         ema_list += [x for x in range(start, end + 1)]
     return ema_list
 
 
-# TODO: Maybe we need another dict for attribute by measure.
+# By-measure attributes are handled during slicing.
 def get_score_info_mxl(tree: ET.ElementTree):
     score_info = {'measure': {},
                   'staff': {
                       'start': 1
-                  },
-                  'beat': {
-                      'start': 1,
-                      'end': {}  # measure_num: num_of_beats
                   }}
     parts = tree.getroot().findall('part')
     measures = parts[0].findall('measure')
     score_info['measure']['start'] = int(measures[0].attrib['number'])
     score_info['measure']['end'] = int(measures[-1].attrib['number'])
     score_info['staff']['end'] = len(parts)
-    time_sig = None  # tuple of numerator, denominator
-    for measure in measures:
-        attributes = measure.find("attributes")
-        if attributes:
-            time = attributes.find("time")
-            time_sig = (int(time.find("beats").text), int(time.find("beat-type").text))
-        score_info['beat']['end'][measure.attrib['number']] = time_sig
     # TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
     return score_info

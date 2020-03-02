@@ -77,3 +77,8 @@ def get_omas_and_ema2_trees(npub_num):
     ema2_tree = slicer.slice_score(tree, ema_exp_full)
     ##
     return omas_tree, ema2_tree
+
+
+def export_trees(o, e):
+    o.write('o.xml')
+    e.write('e.xml')
