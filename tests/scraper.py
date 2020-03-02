@@ -1,11 +1,12 @@
 import requests
-from music21 import converter, stream
+from music21 import converter, stream, environment
 from ema2.emaexp import EmaExp
 from bs4 import BeautifulSoup
 from pyld import jsonld
 from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 from ema2 import emaexp, emaexpfull, slicer
+import os.path
 
 W3C_HAS_SRC = "http://www.w3.org/ns/oa#hasSource"
 NANOPUB_URL = "http://digitalduchemin.org:8080/nanopub-server"
@@ -42,14 +43,55 @@ def ema_exps_from_page(page_num):
     return ema_exps
 
 
-# We need to construct a dictionary[score_name][ema_string] = selection xml.
-# Script to download all files and convert to xml.
+def get_omas_selections(page_num):
+    """ Construct a dictionary[score_name][ema_string] = selection xml based on Omas nanopubs. """
+    jsonlds = get_jsonlds(page_num)
+    ema_urls = [ema_url_from_jsonld(j) for j in jsonlds]
+    mei_urls = [unquote(ema_url.split("/")[-4]) for ema_url in ema_urls]
+
+    selections_truth = {}
+
+    for i in range(len(mei_urls)):
+        mei_url = mei_urls[i]
+        ema_url = ema_urls[i]
+
+        filename = mei_url.split("/")[-1]
+        name_ext = filename.split(".")
+        expr = ema_url.split("/")[-3:]
+
+        # Downloads the MEI score, converts to XML, saves as a file. Use etree to load from file.
+        if not os.path.exists(f"data/{filename}"):
+            score = converter.parseURL(mei_url, format='mei')
+            score.write("musicxml", fp=f"data/{filename}")
+
+        # Saves the MEI selection into a temp file and loads it back into memory.
+        selection_score = converter.parseURL(ema_url, format='mei')
+        selection_path = selection_score.write("musicxml", fp=f"data/temp_selection.xml")
+        omas_tree = ET.parse(selection_path)
+
+        if name_ext[0] not in selections_truth:
+            selections_truth[name_ext[0]] = {}
+        selections_truth[name_ext[0]]["/".join(expr)] = omas_tree # Maybe ET.tostring
+
+    return selections_truth
+
+
+def ema2_vs_omas(selections_truth, score_name, expr_str):
+    """
+    TODO: Compare the XML.
+    """
+
+    # data/score_name.xml should have been downloaded when running get_omas_selections.
+    tree = ET.parse(f"data/{score_name}.xml")
+    ema_exp = emaexp.EmaExp(*expr_str.split("/"))
+    score_info = emaexpfull.get_score_info_mxl(tree)
+    ema_exp_full = emaexpfull.EmaExpFull(score_info, ema_exp)
+    ema2_tree = slicer.slice_score(tree, ema_exp_full)
+    # Make a diff report - compare to selections_truth[score_name][expr]
+
+
 def get_omas_and_ema2_trees(npub_num):
-    """ Takes a single nanopub and executes the following steps:
-    1. Converts the MEI score to MusicXML.
-    2. Converts the MEI selection to MusicXML.
-    3. Runs the slicer on the MEI-to-MXL score.
-    TODO: Compare the XML outputs of 2 and 3.
+    """ delete this soon
     """
     page_num = 1 + (npub_num // 1000)
     npub_num = npub_num % 1000
@@ -82,3 +124,5 @@ def get_omas_and_ema2_trees(npub_num):
 def export_trees(o, e):
     o.write('o.xml')
     e.write('e.xml')
+
+environment.set('autoDownload', 'allow')

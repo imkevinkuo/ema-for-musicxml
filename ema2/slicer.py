@@ -32,14 +32,12 @@ def process_stave(ema_exp_full, staff_num, measures):
         measure = measures[m]
         measure_num = measure.attrib['number']
 
+        # Keep track of attribute changes - e.g. if we don't select a measure with a time sig change,
+        # we would still want the new time sig to be reflected in following measures.
         m_attr_elem = measure.find('attributes')
         if m_attr_elem:
-            if measure_num in selection:
-                insert_attrib = False
-            # There are new attributes but this measure was not selected. Insert on next selected measure.
-            else:
-                insert_attrib = True
-                attrib = elem_to_dict(m_attr_elem)
+            attrib = elem_to_dict(m_attr_elem)
+            insert_attrib = not measure_num in selection
 
         # make selection
         if measure_num in selection:
@@ -66,6 +64,7 @@ def process_stave(ema_exp_full, staff_num, measures):
             m += 1
         else:
             measures.remove(measure)
+    # TODO: Last measure in stave should have single "\n" tail, not two - not sure if this will cause any problems.
 
 
 def remove_blank_staves(tree, ema_exp_full):
@@ -80,6 +79,7 @@ def remove_blank_staves(tree, ema_exp_full):
             partlist.remove(scoreparts[s])
 
 
+# Used to convert the 'attributes' element to a dict for easy value access during beat slicing.
 def elem_to_dict(elem):
     d = {'text': elem.text, 'tail': elem.tail}
     if elem:
