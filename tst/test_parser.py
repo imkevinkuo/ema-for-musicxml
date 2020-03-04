@@ -1,5 +1,5 @@
 import unittest
-import tests.scraper as scraper
+import tst.scraper as scraper
 from ema2.emaexp import EmaExp
 
 expr_strs = ["18-18/2+4/@all"]

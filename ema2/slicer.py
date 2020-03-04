@@ -50,6 +50,7 @@ def process_stave(ema_exp_full, staff_num, measures):
                 numer = int(attrib['time']['beats']['text'])
                 denom = int(attrib['time']['beat-type']['text'])
                 beat_factor = numer / denom
+                # TODO: Handle cut time?
                 divisions = int(attrib['divisions']['text'])
                 beats = ema_to_list(ema_measure[staff_num], {'start': 1, 'end': numer})
                 time = 0
