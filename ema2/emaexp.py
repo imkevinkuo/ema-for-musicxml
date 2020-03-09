@@ -14,11 +14,12 @@ class EmaExp(object):
         # self.completeness = completeness
 
         # list of EmaRange
-        self.mm_ranges = parse_range_str_list(measures.split(','))
+        self.mm_ranges = parse_range_str_list(measures.split(','), 'measure')
         # list of list of EmaRange
-        self.st_ranges = [parse_range_str_list(stave_req_str.split("+")) for stave_req_str in staves.split(',')]
+        self.st_ranges = [parse_range_str_list(stave_req_str.split("+"), 'stave')
+                          for stave_req_str in staves.split(',')]
         # list of list of list of EmaRange
-        self.bt_ranges = [[parse_range_str_list(stave_req_str.split("@")[1:])
+        self.bt_ranges = [[parse_range_str_list(stave_req_str.split("@")[1:], 'beat')
                            for stave_req_str in measure_req_str.split("+")]
                           for measure_req_str in beats.split(',')]
 
@@ -29,9 +30,9 @@ class EmaExp(object):
 
 class EmaRange(object):
     """ Represents a (start, end) pair given in an EMA expression. """
-    def __init__(self, range_str):
+    def __init__(self, range_str, unit):
         x = range_str.split("-")
-        start, end = ema_token(x[0]), ema_token(x[-1])
+        start, end = ema_token(x[0], unit), ema_token(x[-1], unit)
         if start == 'end' and end != 'end':
             raise BadApiRequest
         if end == 'start' and start != 'start':
@@ -42,12 +43,12 @@ class EmaRange(object):
         self.end = end
 
 
-def parse_range_str_list(range_str_list, join=False):
+def parse_range_str_list(range_str_list, unit, join=False):
     ema_range_list = []
     if join:
         last_end = -1
         for range_str in range_str_list:
-            ema_range = EmaRange(range_str)
+            ema_range = EmaRange(range_str, unit)
             if ema_range_list and ema_range.start == last_end + 1:
                 ema_range_list[-1].end = ema_range.end
             else:
@@ -55,12 +56,13 @@ def parse_range_str_list(range_str_list, join=False):
             last_end = ema_range.end
     else:
         for range_str in range_str_list:
-            ema_range_list.append(EmaRange(range_str))
+            ema_range_list.append(EmaRange(range_str, unit))
     return ema_range_list
 
 
-def ema_token(token):
+def ema_token(token, unit):
     if token == 'all' or token == 'start' or token == 'end':
         return token
+    if unit == 'beat':
+        return float(token)
     return int(token)
-

@@ -71,7 +71,6 @@ def ema_to_list(ema_range_list, start_end):
     for ema_range in ema_range_list:
         start = start_end.get(ema_range.start, ema_range.start)
         end = start_end.get(ema_range.end, ema_range.end)
-        # TODO: What if measure nums are not strictly numbers?
         ema_list += [x for x in range(start, end + 1)]
     return ema_list
 
@@ -87,5 +86,7 @@ def get_score_info_mxl(tree: ET.ElementTree):
     score_info['measure']['start'] = int(measures[0].attrib['number'])
     score_info['measure']['end'] = int(measures[-1].attrib['number'])
     score_info['staff']['end'] = len(parts)
-    # TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
     return score_info
+
+# TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
+# TODO: measure #s in expressions should just be 'from the first measure'

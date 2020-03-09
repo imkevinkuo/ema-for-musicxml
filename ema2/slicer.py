@@ -12,7 +12,6 @@ def convert_to_rest(note: ET.Element):
     note.insert(0, ET.Element("rest"))
 
 
-# TODO: Make a version for measurewise-XML
 def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpFull):
     """ For part-wise MusicXML files. """
     staves = tree.findall("part")
@@ -21,13 +20,14 @@ def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpFull):
     remove_blank_staves(tree, ema_exp_full)
     return tree
 
-
+# TODO: keep track of selected element ids
+# if does not have id, get an xpath, either way both of them are a string
 def process_stave(ema_exp_full, staff_num, measures):
     """ Traverse one stave and edit it according to the EmaExpFull. """
     selection = ema_exp_full.selection
     m = 0
     attrib = {}
-    insert_attrib = False
+    insert_attrib = {}
     while m < len(measures):
         measure = measures[m]
         measure_num = measure.attrib['number']
@@ -36,29 +36,43 @@ def process_stave(ema_exp_full, staff_num, measures):
         # we would still want the new time sig to be reflected in following measures.
         m_attr_elem = measure.find('attributes')
         if m_attr_elem:
-            attrib = elem_to_dict(m_attr_elem)
-            insert_attrib = not measure_num in selection
+            measure_attrib = elem_to_dict(m_attr_elem)
+            for key in measure_attrib:
+                attrib[key] = measure_attrib[key]
+                if measure_num not in selection:
+                    insert_attrib[key] = measure_attrib[key]
 
         # make selection
         if measure_num in selection:
-            if insert_attrib:
-                measure.insert(0, dict_to_elem('attributes', attrib))
-                insert_attrib = False
+            if insert_attrib: # True if insert_attrib != {}
+                measure.insert(0, dict_to_elem('attributes', insert_attrib))
+                insert_attrib = {}
 
             ema_measure = selection[measure_num]
             if staff_num in ema_measure:
                 numer = int(attrib['time']['beats']['text'])
                 denom = int(attrib['time']['beat-type']['text'])
                 beat_factor = numer / denom
-                # TODO: Handle cut time?
                 divisions = int(attrib['divisions']['text'])
-                beats = ema_to_list(ema_measure[staff_num], {'start': 1, 'end': numer})
-                time = 0
+                # TODO: Handle cut time?
+                # TODO: beats can be floats; when rewriting make sure beats in in sorted order
+                # TODO: sort by starting time - do not allow overlapping ranges
+                ema_beats = ema_measure[staff_num] # list of EmaRange
+                ema_index = 0
+                curr_beat = 1
+                # Addressing by note should be better because of completeness considerations later
                 for note in measure.findall("note"):
-                    if (time // (beat_factor * divisions)) + 1 not in beats:
+                    duration = int(note.find("duration").text) / (beat_factor * divisions)
+                    beat_range = ema_beats[ema_index]
+
+                    if beat_range.end != 'end':
+                        while curr_beat > beat_range.end:
+                            ema_index += 1
+                            beat_range = ema_beats[ema_index]
+
+                    if not (val_in_range(curr_beat, beat_range) or val_in_range(curr_beat + duration, beat_range)):
                         convert_to_rest(note)
-                    duration = int(note.find("duration").text)
-                    time += duration
+                    curr_beat += duration
             else:
                 for note in measure.findall("note"):
                     convert_to_rest(note)
@@ -67,6 +81,11 @@ def process_stave(ema_exp_full, staff_num, measures):
             measures.remove(measure)
     # TODO: Last measure in stave should have single "\n" tail, not two - not sure if this will cause any problems.
 
+
+def val_in_range(val, ema_range):
+    s = ema_range.start == 'start' or val >= ema_range.start
+    e = ema_range.end == 'end' or val <= ema_range.end
+    return s and e
 
 def remove_blank_staves(tree, ema_exp_full):
     selected_staves = ema_exp_full.selected_staves

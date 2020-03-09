@@ -77,7 +77,7 @@ def evaluate_ema2_page(page_num):
             print(f"Exception for nanopub_{nanopub_num}: {ex}")
 
 
-def evaluate_ema2(score_name, expr_str, truth_filename):
+def evaluate_ema2(score_name, expr_str, truth_filename, print_fail_elem=False):
     # TODO: Maybe try downloading if we can't find it
     score_path = f"data/scores/{score_name}.xml"
     selection_path = f"data/selections/{truth_filename}.xml"
@@ -96,26 +96,31 @@ def evaluate_ema2(score_name, expr_str, truth_filename):
 
     ema2_tree = slicer.slice_score(score_tree, ema_exp_full)
     omas_tree = ET.parse(selection_path)
+    diff_test(ema2_tree.getroot(), omas_tree.getroot(), print_fail_elem)
+    # For debugging
+    ema2_tree.write("data/selection_temp.xml")
+    return ema2_tree, omas_tree
 
-    diff_test(ema2_tree.getroot(), omas_tree.getroot())
 
-
-def evaluate_ema2_by_num(nanopub_num):
+def evaluate_ema2_by_num(nanopub_num, print_fail_elem=False):
     """ Use this for testing! """
     page_num = 1 + nanopub_num // 1000
     jsonlds = get_jsonlds(page_num)
     score_name, expr_str = scrape_nanopub(nanopub_num, jsonlds[nanopub_num % 1000])
-    evaluate_ema2(score_name, expr_str, f"nanopub_{nanopub_num}")
+    return evaluate_ema2(score_name, expr_str, f"nanopub_{nanopub_num}", print_fail_elem)
 
 
-def diff_test(root1, root2):
+def diff_test(root1, root2, print_fail_elem):
     """ A simple recursive function that checks if the structure and tags of these two trees are generally the same. """
     if len(root1) == len(root2) and root1.tag == root2.tag:
         # print(f"Matched {root1.tag}: {len(root1)} children.")
         for i in range(len(root1)):
-            diff_test(root1[i], root2[i])
+            diff_test(root1[i], root2[i], print_fail_elem)
     else:
         print(f"Match failed: {root1.tag}: {len(root1)} children vs. {root2.tag}: {len(root2)} children.")
+        if print_fail_elem:
+            print_elems_recursive(root1)
+            print_elems_recursive(root2)
 
 
 #
@@ -150,4 +155,16 @@ def ema_exps_from_page(page_num):
     return ema_exps
 
 
+def print_elems_recursive(elem, i=0):
+    print(" "*i, elem)
+    for child in elem:
+        print_elems_recursive(child, i+4)
+
 environment.set('autoDownload', 'allow')
+
+# List of failing nanopubs (because of external reasons)
+#num |
+# 22 | Exp should be 5-6/1+2/@all
+# 31 | Exp should be 13-13/2+3/@all
+# 35 | Omas selection is wrong
+# 40 | bad music21 conversion
