@@ -7,11 +7,14 @@ class EmaExp(object):
         'start/end' contain an indeterminate number of measures/beats/staves.
         'all' is converted to 'start','end'.
     """
-    def __init__(self, measures, staves, beats, completeness=None):
+    def __init__(self, measures, staves=None, beats=None, completeness=None):
         # self.requested_measures = measures
         # self.requested_staves = staves
         # self.requested_beats = beats
         # self.completeness = completeness
+
+        if staves is None and beats is None and completeness is None:
+            measures, staves, beats = measures.split("/")
 
         # list of EmaRange
         self.mm_ranges = parse_range_str_list(measures.split(','), 'measure')

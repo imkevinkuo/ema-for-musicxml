@@ -1,5 +1,14 @@
+import math
 import xml.etree.ElementTree as ET
-from ema2.emaexpfull import EmaExpFull, ema_to_list
+from ema2.emaexp import EmaExp
+from ema2.emaexpfull import EmaExpFull, get_score_info_mxl
+
+
+def slice_score_path(filepath, exp_str):
+    tree = ET.parse(filepath)
+    emaexp = EmaExp(exp_str)
+    emaexp_full = EmaExpFull(get_score_info_mxl(tree), emaexp)
+    return slice_score(tree, emaexp_full)
 
 
 def convert_to_rest(note: ET.Element):
@@ -19,6 +28,12 @@ def slice_score(tree: ET.ElementTree, ema_exp_full: EmaExpFull):
         process_stave(ema_exp_full, s+1, staves[s])
     remove_blank_staves(tree, ema_exp_full)
     return tree
+
+
+def truncate(number, digits):
+    stepper = 10.0 ** digits
+    return math.trunc(stepper * number) / stepper
+
 
 # TODO: keep track of selected element ids
 # if does not have id, get an xpath, either way both of them are a string
@@ -52,27 +67,28 @@ def process_stave(ema_exp_full, staff_num, measures):
             if staff_num in ema_measure:
                 numer = int(attrib['time']['beats']['text'])
                 denom = int(attrib['time']['beat-type']['text'])
-                beat_factor = numer / denom
                 divisions = int(attrib['divisions']['text'])
+                # total_divisions = divisions * numer * 4 / denom
                 # TODO: Handle cut time?
                 # TODO: beats can be floats; when rewriting make sure beats in in sorted order
                 # TODO: sort by starting time - do not allow overlapping ranges
                 ema_beats = ema_measure[staff_num] # list of EmaRange
                 ema_index = 0
-                curr_beat = 1
+                curr_time = 0
                 # Addressing by note should be better because of completeness considerations later
                 for note in measure.findall("note"):
-                    duration = int(note.find("duration").text) / (beat_factor * divisions)
+                    duration = int(note.find("duration").text)
                     beat_range = ema_beats[ema_index]
-
+                    curr_beat = curr_time / divisions
+                    print(ema_index, curr_time, curr_beat, duration, beat_range.start, beat_range.end)
                     if beat_range.end != 'end':
-                        while curr_beat > beat_range.end:
+                        while curr_beat > beat_range.end + 0.01:
                             ema_index += 1
                             beat_range = ema_beats[ema_index]
 
                     if not (val_in_range(curr_beat, beat_range) or val_in_range(curr_beat + duration, beat_range)):
                         convert_to_rest(note)
-                    curr_beat += duration
+                    curr_time += duration
             else:
                 for note in measure.findall("note"):
                     convert_to_rest(note)
