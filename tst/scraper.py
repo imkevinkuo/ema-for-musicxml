@@ -5,14 +5,33 @@ from bs4 import BeautifulSoup
 from pyld import jsonld
 from urllib.parse import unquote
 
+from io import StringIO
+import sys
+
 import xml.etree.ElementTree as ET
-from ema2.emaexp import EmaExp
-from ema2 import emaexp, emaexpfull, slicer
-from music21 import converter, stream, environment
+from music21 import converter, environment
 
 W3C_HAS_SRC = "http://www.w3.org/ns/oa#hasSource"
 NANOPUB_URL = "http://digitalduchemin.org:8080/nanopub-server"
 LAST_PAGE = 11
+
+# To access ema2 module from inside tst folder
+sys.path.append(os.path.abspath(os.path.join('..', 'ema2')))
+from ema2.emaexp import EmaExp
+from ema2 import emaexp, emaexpfull, slicer
+
+
+# For suppressing music21 warnings, so the tqdm progress bar is not reprinted upon warnings
+class Capturing(list):
+    def __enter__(self):
+        self._stderr = sys.stderr
+        sys.stderr = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stderr = self._stderr
 
 
 #
@@ -28,8 +47,9 @@ def scrape_page_nanopubs(page_num, d={}, fails={}):
     for i in tqdm(range(len(jsonlds))):
         nanopub_num = 1000*(page_num - 1) + i
         try:
-            score_name, expr_str = scrape_nanopub(nanopub_num, jsonlds[i])
-            d[nanopub_num] = (score_name, expr_str)
+            with Capturing() as output:
+                score_name, expr_str = scrape_nanopub(nanopub_num, jsonlds[i])
+                d[nanopub_num] = (score_name, expr_str)
         except Exception as ex:
             fails[nanopub_num] = ex
 
@@ -42,7 +62,7 @@ def scrape_nanopub(nanopub_num, jsonld_filename):
     expr_str = "/".join(ema_url.split("/")[-3:])
     score_name = mei_url.split("/")[-1].split(".")[0]
     #
-    # May warn "mei.base: WARNING: Importing <slur> without @startid and @endid is not yet supported."
+    # Will warn "mei.base: WARNING: Importing <slur> without @startid and @endid is not yet supported."
     #
     # Downloads the MEI score, converts to XML, saves as a file. Use etree to load from file.
     score_path = f"data/scores/{score_name}.xml"
@@ -160,7 +180,23 @@ def print_elems_recursive(elem, i=0):
     for child in elem:
         print_elems_recursive(child, i+4)
 
+
 environment.set('autoDownload', 'allow')
+
+if __name__ == '__main__':
+    if os.getcwd().split("/")[-1] == 'ema2':
+        os.chdir('tst')
+
+    if os.getcwd().split("/")[-1] != 'tst':
+        print("scraper.py should be run from within the ema2 root folder or ema2/tst.")
+        exit()
+
+    if not os.path.exists("data"):
+        os.mkdir('data')
+        os.mkdir('data/selections')
+        os.mkdir('data/scores')
+    for p in range(1, LAST_PAGE+1):
+        scrape_page_nanopubs(p)
 
 # List of failing nanopubs (because of external reasons)
 #num |
@@ -168,3 +204,4 @@ environment.set('autoDownload', 'allow')
 # 31 | Exp should be 13-13/2+3/@all
 # 35 | Omas selection is wrong
 # 40 | bad music21 conversion
+
