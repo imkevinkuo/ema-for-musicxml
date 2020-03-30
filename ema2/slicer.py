@@ -80,7 +80,7 @@ def process_stave(ema_exp_full, staff_num, measures):
                     duration = int(note.find("duration").text)
                     beat_range = ema_beats[ema_index]
                     curr_beat = curr_time / divisions
-                    print(ema_index, curr_time, curr_beat, duration, beat_range.start, beat_range.end)
+                    # print(ema_index, curr_time, curr_beat, duration, beat_range.start, beat_range.end)
                     if beat_range.end != 'end':
                         while curr_beat > beat_range.end + 0.01:
                             ema_index += 1

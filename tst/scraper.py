@@ -183,12 +183,13 @@ def print_elems_recursive(elem, i=0):
 
 environment.set('autoDownload', 'allow')
 
-if __name__ == '__main__':
-    if os.getcwd().split("/")[-1] == 'ema2':
+if __name__ == '__main__' and len(sys.argv) == 2 and sys.argv[1] == "scrape":
+    print(os.getcwd())
+    if os.path.basename(os.getcwd()) == 'ema2':
         os.chdir('tst')
 
-    if os.getcwd().split("/")[-1] != 'tst':
-        print("scraper.py should be run from within the ema2 root folder or ema2/tst.")
+    if os.path.basename(os.getcwd()) != 'tst':
+        print("\"scraper.py scrape\" should be run from within the ema2 root folder or ema2/tst.")
         exit()
 
     if not os.path.exists("data"):

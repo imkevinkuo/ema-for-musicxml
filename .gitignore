@@ -1,4 +1,5 @@
 .idea
 ema2/__pycache__
+tst/__pycache__
 tst/data
 .DS_Store
