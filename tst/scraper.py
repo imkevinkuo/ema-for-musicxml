@@ -122,25 +122,39 @@ def evaluate_ema2(score_name, expr_str, truth_filename, print_fail_elem=False):
     return ema2_tree, omas_tree
 
 
+# Suggested usage: Open Python console, run this function,
+# then compare the content of selection_temp.xml and selections/nanopub_X.xml.
 def evaluate_ema2_by_num(nanopub_num, print_fail_elem=False):
-    """ Use this for testing! """
+    """ Evaluates a single nanopub. """
     page_num = 1 + nanopub_num // 1000
     jsonlds = get_jsonlds(page_num)
     score_name, expr_str = scrape_nanopub(nanopub_num, jsonlds[nanopub_num % 1000])
     return evaluate_ema2(score_name, expr_str, f"nanopub_{nanopub_num}", print_fail_elem)
+# List of failing nanopubs (but are okay to ignore)
+# Selection on digital du chemin is incorrect:
+# 22, 31, 35, 63, 70, 74
+# bad music21 conversion:
+# 40,
+# more-or-less correct:
+# 67
+# TODO these ones may be failing because of slicing logic. Currently listed up to 200
+# 85, 106, 140, 141, 158, 159, 161, 167, 172. 173, 190, 196
 
 
-def diff_test(root1, root2, print_fail_elem):
+def diff_test(elem1: ET.Element, elem2: ET.Element, print_fail_elem):
     """ A simple recursive function that checks if the structure and tags of these two trees are generally the same. """
-    if len(root1) == len(root2) and root1.tag == root2.tag:
+    if len(elem1) == len(elem2) and elem1.tag == elem2.tag:
         # print(f"Matched {root1.tag}: {len(root1)} children.")
-        for i in range(len(root1)):
-            diff_test(root1[i], root2[i], print_fail_elem)
+        # TODO: We can make a better diff function that searches for the best match
+        elem1 = sorted(list(elem1), key=lambda x: x.tag)
+        elem2 = sorted(list(elem2), key=lambda x: x.tag)
+        for i in range(len(elem1)):
+            diff_test(elem1[i], elem2[i], print_fail_elem)
     else:
-        print(f"Match failed: {root1.tag}: {len(root1)} children vs. {root2.tag}: {len(root2)} children.")
+        print(f"Mismatch at {elem1.tag}, {elem1.attrib}: {len(elem1)} children vs. {elem2.tag}, {elem2.attrib}: {len(elem2)} children.")
         if print_fail_elem:
-            print_elems_recursive(root1)
-            print_elems_recursive(root2)
+            print_elems_recursive(elem1)
+            print_elems_recursive(elem2)
 
 
 #
@@ -198,11 +212,3 @@ if __name__ == '__main__' and len(sys.argv) == 2 and sys.argv[1] == "scrape":
         os.mkdir('data/scores')
     for p in range(1, LAST_PAGE+1):
         scrape_page_nanopubs(p)
-
-# List of failing nanopubs (because of external reasons)
-#num |
-# 22 | Exp should be 5-6/1+2/@all
-# 31 | Exp should be 13-13/2+3/@all
-# 35 | Omas selection is wrong
-# 40 | bad music21 conversion
-

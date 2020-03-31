@@ -44,12 +44,12 @@ def process_stave(ema_exp_full, staff_num, measures):
     attrib = {}
     insert_attrib = {}
     while m < len(measures):
-        measure = measures[m]
+        measure: ET.Element = measures[m]
         measure_num = measure.attrib['number']
 
         # Keep track of attribute changes - e.g. if we don't select a measure with a time sig change,
         # we would still want the new time sig to be reflected in following measures.
-        m_attr_elem = measure.find('attributes')
+        m_attr_elem: ET.Element = measure.find('attributes')
         if m_attr_elem:
             measure_attrib = elem_to_dict(m_attr_elem)
             for key in measure_attrib:
@@ -59,8 +59,12 @@ def process_stave(ema_exp_full, staff_num, measures):
 
         # make selection
         if measure_num in selection:
-            if insert_attrib: # True if insert_attrib != {}
-                measure.insert(0, dict_to_elem('attributes', insert_attrib))
+            if insert_attrib:  # True if insert_attrib != {}
+                # Need to check if this measure already has attributes
+                if m_attr_elem:
+                    insert_or_combine(measure, dict_to_elem('attributes', insert_attrib))
+                else:
+                    measure.insert(0, dict_to_elem('attributes', insert_attrib))
                 insert_attrib = {}
 
             ema_measure = selection[measure_num]
@@ -103,6 +107,7 @@ def val_in_range(val, ema_range):
     e = ema_range.end == 'end' or val <= ema_range.end
     return s and e
 
+
 def remove_blank_staves(tree, ema_exp_full):
     selected_staves = ema_exp_full.selected_staves
     staves = tree.findall("part")
@@ -132,3 +137,14 @@ def dict_to_elem(name, d):
         if key != 'text' and key != 'tail':
             elem.append(dict_to_elem(key, d[key]))
     return elem
+
+
+def insert_or_combine(parent, child):
+    """ Inserts child into parent. If parent already has an inner element with
+        the same tag as child, combine them instead (without overwriting parent). """
+    sibling = parent.find(child.tag)
+    if sibling is None:
+        parent.insert(0, child)
+    else:
+        for inner_child in child:
+            insert_or_combine(sibling, inner_child)
