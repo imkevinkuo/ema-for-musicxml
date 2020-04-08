@@ -81,11 +81,23 @@ def get_score_info_mxl(tree: ET.ElementTree):
                   'staff': {
                       'start': 1
                   }}
+    # One part may contain multiple staves.
     parts = tree.getroot().findall('part')
+    total_staves = 0
+    for part in parts:
+        part_staves = 1
+        for measure in part:
+            attributes = measure.find("attributes")
+            if attributes is not None:
+                staves = attributes.find("staves")
+                if staves is not None:
+                    part_staves = int(staves.text)
+        total_staves += part_staves
+
     measures = parts[0].findall('measure')
     score_info['measure']['start'] = int(measures[0].attrib['number'])
     score_info['measure']['end'] = int(measures[-1].attrib['number'])
-    score_info['staff']['end'] = len(parts)
+    score_info['staff']['end'] = total_staves
     return score_info
 
 # TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'

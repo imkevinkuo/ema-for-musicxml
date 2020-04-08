@@ -109,12 +109,7 @@ def evaluate_ema2(score_name, expr_str, truth_filename, print_fail_elem=False):
         return
 
     print(f"Evaluating {truth_filename}")
-    score_tree = ET.parse(score_path)
-    ema_exp = emaexp.EmaExp(*expr_str.split("/"))
-    score_info = emaexpfull.get_score_info_mxl(score_tree)
-    ema_exp_full = emaexpfull.EmaExpFull(score_info, ema_exp)
-
-    ema2_tree = slicer.slice_score(score_tree, ema_exp_full)
+    ema2_tree = slicer.slice_score_path(score_path, expr_str)
     omas_tree = ET.parse(selection_path)
     diff_test(ema2_tree.getroot(), omas_tree.getroot(), print_fail_elem)
     # For debugging
@@ -131,23 +126,21 @@ def evaluate_ema2_by_num(nanopub_num, print_fail_elem=False):
     score_name, expr_str = scrape_nanopub(nanopub_num, jsonlds[nanopub_num % 1000])
     return evaluate_ema2(score_name, expr_str, f"nanopub_{nanopub_num}", print_fail_elem)
 # List of failing nanopubs (but are okay to ignore)
-# Selection on digital du chemin is incorrect:
-# 22, 31, 35, 63, 70, 74
-# bad music21 conversion:
-# 40,
-# more-or-less correct:
-# 67
-# TODO these ones may be failing because of slicing logic. Currently listed up to 200
-# 85, 106, 140, 141, 158, 159, 161, 167, 172. 173, 190, 196
+# Selection on digital du chemin is incorrect (usually minor errors):
+# 22, 31, 35, 63, 67, 70, 74, 106
+# bad music21 conversion / malformed score:
+# 40, 85
 
 
 def diff_test(elem1: ET.Element, elem2: ET.Element, print_fail_elem):
     """ A simple recursive function that checks if the structure and tags of these two trees are generally the same. """
     if len(elem1) == len(elem2) and elem1.tag == elem2.tag:
         # print(f"Matched {root1.tag}: {len(root1)} children.")
-        # TODO: We can make a better diff function that searches for the best match
-        elem1 = sorted(list(elem1), key=lambda x: x.tag)
-        elem2 = sorted(list(elem2), key=lambda x: x.tag)
+        # TODO: Is it wise to sort? The nanopubs might have elements out of order
+        #  (or maybe music21 conversion jumbled them up)
+        # Leaving staves unsorted (by id) seems okay
+        elem1 = sorted(list(elem1), key=lambda x: (x.tag, x.get('id', None) if x.tag != 'part' else None))
+        elem2 = sorted(list(elem2), key=lambda x: (x.tag, x.get('id', None) if x.tag != 'part' else None))
         for i in range(len(elem1)):
             diff_test(elem1[i], elem2[i], print_fail_elem)
     else:
