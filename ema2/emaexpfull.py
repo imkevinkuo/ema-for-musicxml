@@ -10,20 +10,18 @@ class EmaExpFull(object):
     """
 
     def __init__(self, score_info: dict, ema_exp: EmaExp):
+        # TODO: If score_info is a str, treat it as filepath to musicxml and use get_score_info?
         self.score_info = score_info
-        self.selection, self.selected_staves = expand_ema_exp(score_info, ema_exp)
-        # selection[measure #] = dict: {staff #: set(requested beats)}
-        # selection[measure #][staff #] = set(requested beats)
+        self.selection = expand_ema_exp(score_info, ema_exp)
+        self.completeness = ema_exp.completeness
 
 
 def expand_ema_exp(score_info, ema_exp):
-    """ Converts an EmaExpression to a List[EmaMeasure]. We use a measure-wise representation
-        in order to properly handle measure deletion.
-        e.g. selected measure + non-selected stave -> blank measure
-        e.g. non-selected measure -> delete measure
+    """ Converts an EmaExpression to a List[EmaMeasure]. We use a measure-wise representation.
+        selection[measure #] = dict: {staff #: set(requested beats)}
+        selection[measure #][staff #] = set(requested beats)
     """
     selection = {}
-    selected_staves = set()
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info['measure'])
     for m in range(len(measure_nums)):
         measure_num = str(measure_nums[m])
@@ -36,7 +34,6 @@ def expand_ema_exp(score_info, ema_exp):
         stave_nums = ema_to_list(ema_exp.st_ranges[m2], score_info['staff'])
         for s in range(len(stave_nums)):
             stave_num = stave_nums[s]
-            selected_staves.add(stave_num)
 
             # Handle expressions like 1,2/1+2,2+3/@1-2 and 1,2/1+2,2+3/@1-2,@all
             # (single beat expression mapping to multiple staves/measures)
@@ -58,7 +55,7 @@ def expand_ema_exp(score_info, ema_exp):
                         sel_staves[stave_num].append(ema_range)
                 else:
                     sel_staves[stave_num] = staff_beats
-    return selection, selected_staves
+    return selection
 
 
 def ema_to_list(ema_range_list, start_end):
@@ -76,6 +73,7 @@ def ema_to_list(ema_range_list, start_end):
 
 
 # By-measure attributes are handled during slicing.
+# TODO: Don't use special handling for measure numbers - just treat first measure as 1, even if there is a pickup
 def get_score_info_mxl(tree: ET.ElementTree):
     score_info = {'measure': {},
                   'staff': {
@@ -99,6 +97,3 @@ def get_score_info_mxl(tree: ET.ElementTree):
     score_info['measure']['end'] = int(measures[-1].attrib['number'])
     score_info['staff']['end'] = total_staves
     return score_info
-
-# TODO: What happens when we have mxl files with non-integer measure numbers? e.g. '7a'
-# TODO: measure #s in expressions should just be 'from the first measure'

@@ -12,12 +12,8 @@ def index():
     return "Welcome to EMA"
 
 
-@app.route(
-    '/<path:path>/<measures>/<staves>/<beats>',
-    methods=["GET"])
-@app.route(
-    '/<path:path>/<measures>/<staves>/<beats>/<completeness>',
-    methods=["GET"])
+@app.route('/<path:path>/<measures>/<staves>/<beats>', methods=["GET"])
+@app.route('/<path:path>/<measures>/<staves>/<beats>/<completeness>', methods=["GET"])
 def address(path, measures, staves, beats, completeness=None):
     score = ET.parse(path)
     ema_exp = EmaExpFull(get_score_info_mxl(score), EmaExp(measures, staves, beats, completeness))

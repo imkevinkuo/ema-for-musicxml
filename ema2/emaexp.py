@@ -1,5 +1,7 @@
 from ema2.exceptions import BadApiRequest
 
+COMPLETENESS_VALUES = ['raw', 'signature', 'nospace', 'cut']
+
 
 class EmaExp(object):
     """ Represents an EMA expression as inputted by a user; no expansion or evaluation of tokens are done yet.
@@ -13,8 +15,13 @@ class EmaExp(object):
         # self.requested_beats = beats
         # self.completeness = completeness
 
-        if staves is None and beats is None and completeness is None:
-            measures, staves, beats = measures.split("/")
+        # Allows feeding in a single string as an argument
+        if staves is None and beats is None:
+            args = measures.split("/")
+            if len(args) == 3:
+                measures, staves, beats = args
+            elif len(args) == 4:
+                measures, staves, beats, completeness = args
 
         # list of EmaRange
         self.mm_ranges = parse_range_str_list(measures.split(','), 'measure')
@@ -25,6 +32,10 @@ class EmaExp(object):
         self.bt_ranges = [[parse_range_str_list(stave_req_str.split("@")[1:], 'beat')
                            for stave_req_str in measure_req_str.split("+")]
                           for measure_req_str in beats.split(',')]
+        # Completeness
+        if completeness not in COMPLETENESS_VALUES:
+            completeness = None
+        self.completeness = completeness
 
     @classmethod
     def fromstring(cls, selection):
@@ -44,6 +55,24 @@ class EmaRange(object):
             start, end = 'start', 'end'
         self.start = start
         self.end = end
+
+    def convert_to_time(self, factor):
+        """ We round values to the closest integer - this means we are snapping selection beats to the closest
+        subdivision, which is specified by the MusicXML. """
+        # TODO: If user specifies a beat division that's even more granular than what's provided in the XML, do we snap?
+        time_start = self.start
+        time_end = self.end
+        if time_start != 'start':
+            time_start = round((self.start - 1)*factor, 0)
+        if time_end != 'end':
+            time_end = round((self.end - 1)*factor, 0)
+        if isinstance(time_start, float) and isinstance(time_end, float) and time_end < time_start:
+            print(f"Warning: beat-to-time conversion produced end {time_end} before start {time_start}")
+            time_end = time_start
+        return EmaRange(f"{time_start}-{time_end}", "beat")
+
+    def __str__(self):
+        return f"[{self.start} {self.end}]"
 
 
 def parse_range_str_list(range_str_list, unit, join=False):

@@ -5,7 +5,7 @@
   <identification>
     <encoding>
       <software>MuseScore 3.4.2</software>
-      <encoding-date>2020-04-08</encoding-date>
+      <encoding-date>2020-04-25</encoding-date>
       <supports element="accidental" type="yes" />
       <supports element="beam" type="yes" />
       <supports attribute="new-page" element="print" type="yes" value="yes" />
@@ -57,7 +57,7 @@
       </score-part>
     </part-list>
   <part id="P1">
-    <measure number="1" width="277.49">
+    <measure number="1" width="274.17">
       <print>
         <system-layout>
           <system-margins>
@@ -71,7 +71,7 @@
           </staff-layout>
         </print>
       <attributes>
-        <divisions>3</divisions>
+        <divisions>6</divisions>
         <key>
           <fifths>1</fifths>
           </key>
@@ -100,12 +100,7 @@
         <sound tempo="120" />
         </direction>
       <note default-x="103.48" default-y="-35.00">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-          </pitch>
-        <duration>2</duration>
+        <rest /><duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <time-modification>
@@ -118,13 +113,8 @@
           <tuplet bracket="yes" type="start" />
           </notations>
         </note>
-      <note default-x="130.01" default-y="-35.00">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-          </pitch>
-        <duration>2</duration>
+      <note default-x="129.50" default-y="-35.00">
+        <rest /><duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <time-modification>
@@ -134,8 +124,8 @@
         <stem>up</stem>
         <staff>1</staff>
         </note>
-      <note default-x="163.16" default-y="-35.00">
-        <rest /><duration>2</duration>
+      <note default-x="162.01" default-y="-35.00">
+        <rest /><duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <time-modification>
@@ -148,8 +138,8 @@
           <tuplet type="stop" />
           </notations>
         </note>
-      <note default-x="189.69" default-y="-35.00">
-        <rest /><duration>2</duration>
+      <note default-x="188.03" default-y="-35.00">
+        <rest /><duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <time-modification>
@@ -162,8 +152,8 @@
           <tuplet bracket="yes" type="start" />
           </notations>
         </note>
-      <note default-x="216.21" default-y="-35.00">
-        <rest /><duration>2</duration>
+      <note default-x="214.04" default-y="-35.00">
+        <rest /><duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <time-modification>
@@ -173,8 +163,8 @@
         <stem>up</stem>
         <staff>1</staff>
         </note>
-      <note default-x="249.37" default-y="-35.00">
-        <rest /><duration>2</duration>
+      <note default-x="246.56" default-y="-35.00">
+        <rest /><duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <time-modification>
@@ -188,7 +178,7 @@
           </notations>
         </note>
       <backup>
-        <duration>12</duration>
+        <duration>24</duration>
         </backup>
       <note default-x="103.48" default-y="-115.00">
         <pitch>
@@ -202,76 +192,29 @@
         <stem>down</stem>
         <staff>2</staff>
         </note>
-      <note default-x="146.58" default-y="-115.00">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>3</octave>
-          </pitch>
-        <duration>3</duration>
-        <voice>5</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>2</staff>
-        </note>
-      <note default-x="189.69" default-y="-115.00">
-        <rest /><duration>3</duration>
-        <voice>5</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>2</staff>
-        </note>
-      <note default-x="232.79" default-y="-115.00">
-        <rest /><duration>3</duration>
-        <voice>5</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>2</staff>
-        </note>
-      </measure>
-    <measure number="2" width="108.82">
       <note>
-        <rest />
-        <duration>12</duration>
-        <voice>1</voice>
-        <staff>1</staff>
-        </note>
-      <backup>
-        <duration>12</duration>
-        </backup>
-      <note default-x="10.00" default-y="-115.00">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>3</octave>
-          </pitch>
-        <duration>3</duration>
-        <voice>5</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>2</staff>
-        </note>
-      <note default-x="34.30" default-y="-115.00">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>3</octave>
-          </pitch>
-        <duration>3</duration>
-        <voice>5</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>2</staff>
-        </note>
-      <note default-x="58.61" default-y="-115.00">
         <rest /><duration>3</duration>
         <voice>5</voice>
+        <type>half</type>
+        <stem>down</stem>
+        <staff>2</staff>
+        </note>
+      <note default-x="145.75" default-y="-115.00">
+        <rest /><duration>6</duration>
+        <voice>5</voice>
         <type>quarter</type>
         <stem>down</stem>
         <staff>2</staff>
         </note>
-      <note default-x="82.91" default-y="-115.00">
-        <rest /><duration>3</duration>
+      <note default-x="188.03" default-y="-115.00">
+        <rest /><duration>6</duration>
+        <voice>5</voice>
+        <type>quarter</type>
+        <stem>down</stem>
+        <staff>2</staff>
+        </note>
+      <note default-x="230.30" default-y="-115.00">
+        <rest /><duration>6</duration>
         <voice>5</voice>
         <type>quarter</type>
         <stem>down</stem>

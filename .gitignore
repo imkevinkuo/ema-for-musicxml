@@ -1,7 +1,5 @@
 .idea
 ema2/__pycache__
 tst/__pycache__
-tst/data/scores
-tst/data/selections
-tst/data/selection_temp.xml
+tst/data
 .DS_Store
