@@ -24,7 +24,7 @@ def expand_ema_exp(score_info, ema_exp):
     selection = {}
     measure_nums = ema_to_list(ema_exp.mm_ranges, score_info['measure'])
     for m in range(len(measure_nums)):
-        measure_num = str(measure_nums[m])
+        measure_num = measure_nums[m]
 
         # Handle expression like 1-3/@all/... (staff expression mapping to multiple measures)
         m2 = m

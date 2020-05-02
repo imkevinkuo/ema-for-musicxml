@@ -59,7 +59,6 @@ class EmaRange(object):
     def convert_to_time(self, factor):
         """ We round values to the closest integer - this means we are snapping selection beats to the closest
         subdivision, which is specified by the MusicXML. """
-        # TODO: If user specifies a beat division that's even more granular than what's provided in the XML, do we snap?
         time_start = self.start
         time_end = self.end
         if time_start != 'start':

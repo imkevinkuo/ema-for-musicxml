@@ -9,6 +9,9 @@ NOTE_TYPES = {1: 'whole',
               8: 'eighth',
               16: 'sixteenth'}
 
+SCALING_CONSTANT = 32
+
+
 # slice_score_path("../tst/data/ema_test_in.xml", "1/1/@all").write("../tst/data/ema_test_out.xml")
 # slice_score_path("../tst/data/scores/DC0101.xml", "2,3/1+2,3+4/@all")
 def slice_score_path(filepath, exp_str):
@@ -39,41 +42,47 @@ def process_part(ema_exp_full, starting_staff, measures):
     attrib = {}
     insert_attrib = {}
     staves_in_part = 1
-    ema_measure_idx = 0
+    measure_idx = 0
+    measure_num = 1
     selection = ema_exp_full.selection
     completeness = ema_exp_full.completeness
-    while ema_measure_idx < len(measures):
-        measure: ET.Element = measures[ema_measure_idx]
-        measure_idx = measure.attrib['number']
+    while measure_idx < len(measures):
+        measure: ET.Element = measures[measure_idx]
 
         # Keep track of attribute changes - e.g. if we don't select a measure with a time sig change,
         # we would still want the new time sig to be reflected in the next selected measure.
         m_attr_elem: ET.Element = measure.find('attributes')
-        if m_attr_elem:
+        if m_attr_elem is not None:
             measure_attrib = elem_to_dict(m_attr_elem)
+            # Scaling all divisions by 2048
+            measure_attrib["divisions"][0]["text"] = str(int(measure_attrib["divisions"][0]["text"])*SCALING_CONSTANT)
             for key in measure_attrib:
                 attrib[key] = measure_attrib[key]
-                if measure_idx not in selection:
-                    insert_attrib[key] = measure_attrib[key]
+                insert_attrib[key] = measure_attrib[key]
             # For handling parts that contain multiple staves
             if "staves" in measure_attrib:
-                staves_in_part = int(measure_attrib["staves"]['text'])
+                staves_in_part = int(measure_attrib["staves"][0]['text'])
 
-        if measure_idx in selection:
-            # print("In measure", measure_num, "staff", staff_num)
+        # Scale all notes by 2048
+        for child in measure:
+            duration = child.find("duration")
+            if duration is not None:
+                duration.text = str(int(duration.text)*SCALING_CONSTANT)
+
+        if measure_num in selection:
+            # print("In measure", measure_num, "starting staff", starting_staff)
+            select_beats(measure, selection[measure_num], starting_staff, attrib, completeness)
+            measure_idx += 1
 
             # We have some attributes we want to insert into the next selected measure
             if insert_attrib:
                 if m_attr_elem:
-                    insert_or_combine(measure, dict_to_elem('attributes', insert_attrib))
-                else:
-                    measure.insert(0, dict_to_elem('attributes', insert_attrib))
+                    measure.remove(m_attr_elem)
+                measure.insert(0, dict_to_elem('attributes', insert_attrib))
                 insert_attrib = {}
-
-            select_beats(measure, selection[measure_idx], starting_staff, attrib, completeness)
-            ema_measure_idx += 1
         else:
             measures.remove(measure)
+        measure_num += 1
     return staves_in_part
 
 
@@ -83,36 +92,35 @@ def select_beats(measure, ema_measure, starting_staff, attrib, completeness=None
         ema_beats = ema_measure[staff_num]  # list of EmaRange
     else:
         ema_beats = []
-    divisions = int(attrib['divisions']['text'])
-    curr_time = 0.0
+    divisions = int(attrib['divisions'][0]['text'])
+    curr_time = 0
     # TODO: Check cut time
     # TODO: Completeness
     # For handling completeness insertion
     child_index = 0
     for child in measure:
+        duration_elem = child.find("duration")
+        duration = int(duration_elem.text) if duration_elem is not None else None
         if child.tag == 'note':
-            duration = int(child.find("duration").text)
-            # Check if note is inside any of the ema_ranges for this measure+staff.
-            # Just check every range, shouldn't be computationally expensive
-            matched_ema_range = None
-            for beat_range in ema_beats:
-                # Multiply beat_range's start/end by the # of divisions per beat given by the measure, then round.
-                # This lets us better deal with float beat values provided by the user.
-                time_range = beat_range.convert_to_time(divisions)
-                if note_in_range(curr_time, duration, time_range):
-                    matched_ema_range = time_range
-                    print(f"Selected note @ {curr_time}, staff {staff_num}")
+            if (child.find("rest")) is None:
+                # Check if note is inside any of the ema_ranges for this measure+staff.
+                # Just check every range, shouldn't be computationally expensive
+                matched_ema_range = None
+                for beat_range in ema_beats:
+                    time_range = beat_range.convert_to_time(divisions)
+                    if note_in_range(curr_time, duration, time_range):
+                        matched_ema_range = time_range
+                        print(f"Selected note @ time {curr_time}, staff {staff_num}")
 
-            if matched_ema_range:
-                if completeness == 'cut':
-                    trim_note(measure, child, child_index, curr_time, duration, matched_ema_range, divisions)
-            else:
-                remove_from_selection(child)
+                if matched_ema_range:
+                    if completeness == 'cut':
+                        trim_note(measure, child, child_index, curr_time, duration, matched_ema_range, divisions)
+                else:
+                    remove_from_selection(child)
             curr_time += duration
         elif child.tag == 'backup':
             staff_num += 1
             ema_beats = ema_measure.get(staff_num, [])  # Defaults to [] if not selected
-            duration = int(child.find("duration").text)
             curr_time -= duration
         child_index += 1
 
@@ -135,41 +143,51 @@ def trim_note(measure, child, child_index, start_time, duration, matched_ema_ran
         trimmed_end = matched_ema_range.end
         rest_length = end_time - matched_ema_range.end
         # child.tail is '\n' + some spaces
-        rest = create_rest_element(rest_length, child)
+        rest = create_rest_element(rest_length, child, divisions)
         measure.insert(child_index + 1, rest)
-        print("Trimmed note end, new length", trimmed_end - trimmed_start)
+        print("Trimmed note end, new length", trimmed_end - trimmed_start, "rest length", rest_length)
     if s or e:
-        # TODO: Change note type
-        child.find("duration").text = str(int(trimmed_end - trimmed_start))
+        new_duration = int(trimmed_end - trimmed_start)
+        child.find("duration").text = str(new_duration)
+        child.find("type").text = NOTE_TYPES[int(4 * divisions / new_duration)]
 
 
-def create_rest_element(rest_length, orig_note):
+def create_rest_element(rest_length, orig_note, divisions):
     """  rest_length must be an int. """
     # TODO: Change subelements: type (quarter, eighth, etc.), time-modification, stem, notations, etc..
     # Copy original note, then change subelements
     orig_note_dict = elem_to_dict(orig_note)
     # orig_note_dict['type']['text'] =
-    orig_note_dict['duration']['text'] = str(int(rest_length))
+    orig_note_dict['duration'][0]['text'] = str(int(rest_length))
+    orig_note_dict['type'][0]['text'] = NOTE_TYPES[int(4*divisions/rest_length)]
     note_elem = dict_to_elem('note', orig_note_dict, len(orig_note.tail) - 1)
     return note_elem
 
 
 # Used to convert the 'attributes' element to a dict for easy value access during beat slicing.
+# This is a dict of str:list. Each list contains more dicts like this.
+# The reason we have a list of dicts (as opposed to a single dict) is because we index by tag name,
+# but we can have multiple of the same tag as children (e.g. multiple <clef>s in <attributes>)
 def elem_to_dict(elem):
-    d = {'text': elem.text, 'tail': elem.tail}
+    d = {'text': elem.text, 'tail': elem.tail, 'attrib': elem.attrib}
     if elem:
         for child in elem:
-            d[child.tag] = elem_to_dict(child)
+            if child.tag not in d:
+                d[child.tag] = []
+            d[child.tag].append(elem_to_dict(child))
     return d
 
 
 def dict_to_elem(name, d, indent=0):
     elem = ET.Element(name)
+    exclude_keys = ['text', 'tail', 'attrib']
     elem.text = d.get('text', '\n' + ' '*(indent+2))
     elem.tail = d.get('tail', "\n" + ' '*indent)
+    elem.attrib = d.get('attrib')
     for key in d:
-        if key != 'text' and key != 'tail':
-            elem.append(dict_to_elem(key, d[key], indent + 2))
+        if key not in exclude_keys:
+            for child_dict in d[key]:
+                elem.append(dict_to_elem(key, child_dict, indent + 2))
     return elem
 
 
