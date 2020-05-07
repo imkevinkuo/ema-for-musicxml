@@ -1,4 +1,4 @@
-from ema2.exceptions import BadApiRequest
+from emaMXL.exceptions import BadApiRequest
 
 COMPLETENESS_VALUES = ['raw', 'signature', 'nospace', 'cut']
 

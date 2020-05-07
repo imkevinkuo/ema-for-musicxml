@@ -1,5 +1,5 @@
 import unittest
-from ema2.slicer import slice_score_path
+from emaMXL.slicer import slice_score_path
 
 
 class TestSelection1(unittest.TestCase):

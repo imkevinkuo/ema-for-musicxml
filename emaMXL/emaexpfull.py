@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from ema2.emaexp import EmaExp
+from emaMXL.emaexp import EmaExp
 
 
 class EmaExpFull(object):

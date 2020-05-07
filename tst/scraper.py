@@ -15,10 +15,10 @@ W3C_HAS_SRC = "http://www.w3.org/ns/oa#hasSource"
 NANOPUB_URL = "http://digitalduchemin.org:8080/nanopub-server"
 LAST_PAGE = 11
 
-# To access ema2 module from inside tst folder
-sys.path.append(os.path.abspath(os.path.join('..', 'ema2')))
-from ema2.emaexp import EmaExp
-from ema2 import emaexp, emaexpfull, slicer
+# To access emaMXL module from inside tst folder
+sys.path.append(os.path.abspath(os.path.join('..', 'emaMXL')))
+from emaMXL.emaexp import EmaExp
+from emaMXL import emaexp, emaexpfull, slicer
 
 
 # For suppressing music21 warnings, so the tqdm progress bar is not reprinted upon warnings
@@ -192,11 +192,11 @@ environment.set('autoDownload', 'allow')
 
 if __name__ == '__main__' and len(sys.argv) == 2 and sys.argv[1] == "scrape":
     print(os.getcwd())
-    if os.path.basename(os.getcwd()) == 'ema2':
+    if os.path.basename(os.getcwd()) == 'emaMXL':
         os.chdir('tst')
 
     if os.path.basename(os.getcwd()) != 'tst':
-        print("\"scraper.py scrape\" should be run from within the ema2 root folder or ema2/tst.")
+        print("\"scraper.py scrape\" should be run from within the emaMXL root folder or emaMXL/tst.")
         exit()
 
     if not os.path.exists("data"):

@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
-from ema2.emaexp import EmaExp
-from ema2.emaexpfull import EmaExpFull, get_score_info_mxl
+from emaMXL.emaexp import EmaExp
+from emaMXL.emaexpfull import EmaExpFull, get_score_info_mxl
 
 
 NOTE_TYPES = {1: 'whole',
