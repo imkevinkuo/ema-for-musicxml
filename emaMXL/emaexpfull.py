@@ -10,7 +10,6 @@ class EmaExpFull(object):
     """
 
     def __init__(self, score_info: dict, ema_exp: EmaExp):
-        # TODO: If score_info is a str, treat it as filepath to musicxml and use get_score_info?
         self.score_info = score_info
         self.selection = expand_ema_exp(score_info, ema_exp)
         self.completeness = ema_exp.completeness
