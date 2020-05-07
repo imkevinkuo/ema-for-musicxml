@@ -75,10 +75,8 @@ def ema_to_list(ema_range_list, start_end):
 # By-measure attributes are handled during slicing.
 # TODO: Don't use special handling for measure numbers - just treat first measure as 1, even if there is a pickup
 def get_score_info_mxl(tree: ET.ElementTree):
-    score_info = {'measure': {},
-                  'staff': {
-                      'start': 1
-                  }}
+    score_info = {'measure': {'start': 1},
+                  'staff': {'start': 1}}
     # One part may contain multiple staves.
     parts = tree.getroot().findall('part')
     total_staves = 0
@@ -93,7 +91,6 @@ def get_score_info_mxl(tree: ET.ElementTree):
         total_staves += part_staves
 
     measures = parts[0].findall('measure')
-    score_info['measure']['start'] = int(measures[0].attrib['number'])
-    score_info['measure']['end'] = int(measures[-1].attrib['number'])
+    score_info['measure']['end'] = len(measures)
     score_info['staff']['end'] = total_staves
     return score_info

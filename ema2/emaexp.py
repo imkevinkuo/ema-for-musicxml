@@ -5,9 +5,9 @@ COMPLETENESS_VALUES = ['raw', 'signature', 'nospace', 'cut']
 
 class EmaExp(object):
     """ Represents an EMA expression as inputted by a user; no expansion or evaluation of tokens are done yet.
-        We cannot yet represent the request as a single nested structure because ranges including
-        'start/end' contain an indeterminate number of measures/beats/staves.
-        'all' is converted to 'start','end'.
+    We cannot yet represent the request as a single nested structure because ranges including
+    'start/end' contain an indeterminate number of measures/beats/staves.
+    'all' is converted to 'start','end'.
     """
     def __init__(self, measures, staves=None, beats=None, completeness=None):
         # self.requested_measures = measures
