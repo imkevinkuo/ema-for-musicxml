@@ -1,3 +1,4 @@
+import copy
 import xml.etree.ElementTree as ET
 from emaMXL.emaexp import EmaExp
 from emaMXL.emaexpfull import EmaExpFull, get_score_info_mxl
@@ -7,12 +8,19 @@ NOTE_TYPES = {1: 'whole',
               2: 'half',
               4: 'quarter',
               8: 'eighth',
-              16: 'sixteenth'}
+              16: '16th',
+              32: '32nd',
+              64: '64th'}
 
-SCALING_CONSTANT = 512
+SCALING_CONSTANT = 1
 
 
-# slice_score_path("../tst/data/ema_test_in_2.xml", "1/2/@1-1.5/cut").write("../tst/data/ema_test_out.xml")
+# slice_score_path("../tst/data/ema_test_in.xml", "1/2/@1-1.5/cut").write("../tst/data/ema_test_out.xml")
+# filepath = "../tst/data/ema_test_in.xml"
+# exp_str = "1/1/@1/cut"
+# tree = ET.parse(filepath)
+# emaexp = EmaExp(exp_str)
+# emaexp_full = EmaExpFull(get_score_info_mxl(tree), emaexp)
 def slice_score_path(filepath, exp_str):
     """ Highest-level selection function; creates a selection from a MusicXML filepath and EMA expression string.
 
@@ -144,18 +152,22 @@ def select_beats(measure, ema_measure, starting_staff, attrib, completeness=None
         duration = int(duration_elem.text) if duration_elem is not None else None
         if child.tag == 'note':
             if (child.find("rest")) is None:
-                # Check if note is inside any of the ema_ranges for this measure+staff.
+                # Check if note is inside any of the ema_ranges for this measure & staff.
                 matched_ema_range = None
                 for beat_range in ema_beats:
-                    time_range = beat_range.convert_to_time(divisions)
-                    if note_in_range(curr_time, duration, time_range):
+                    time_range = beat_range.scale_beat(divisions)
+                    if time_range.contains_note(curr_time, curr_time + duration):
                         matched_ema_range = time_range
                         print(f"Selected note @ time {curr_time}, staff {staff_num}")
+                        print(f"Beat -> Division Range: {beat_range} -> {time_range}")
 
                 if matched_ema_range:
+                    # If note falls inside the range, we want to keep it.
+                    # If 'cut' is specified, then we trim the note as needed.
                     if completeness == 'cut':
                         trim_note(measure, child, child_index, curr_time, duration, matched_ema_range, divisions)
                 else:
+                    # 'raw' behavior here will remove instead of converting to rest
                     remove_from_selection(child)
             curr_time += duration
         elif child.tag == 'backup':
@@ -185,50 +197,93 @@ def trim_note(measure, note, note_index, start_time, duration, matched_ema_range
     :return: None
     """
     end_time = start_time + duration
-    s = matched_ema_range.start == 'start' or matched_ema_range.start <= start_time
+    s = matched_ema_range.start <= start_time
     e = matched_ema_range.end == 'end' or matched_ema_range.end >= end_time
     # If the note overflows outside the matched_ema_range, we need to trim and replace the open spaces with rests.
     trimmed_start, trimmed_end = start_time, start_time + duration
     print("Starting note length:", trimmed_end - trimmed_start)
+    # TODO: Instead of directly setting rest length, split into unit lengths
+    #  e.g. eighth + sixteenth rather than dotted eighth. when should this happen vs. combined?
     if not s:
         trimmed_start = matched_ema_range.start
         rest_length = matched_ema_range.start - start_time
-        rest = create_rest_element(rest_length, note)
+        rest = create_rest_element(note, rest_length, divisions)
         measure.insert(note_index, rest)
-        print("Trimmed note start, new length", trimmed_end - trimmed_start)
     if not e:
         trimmed_end = matched_ema_range.end
         rest_length = end_time - matched_ema_range.end
-        # child.tail is '\n' + some spaces
-        rest = create_rest_element(rest_length, note, divisions)
+        rest = create_rest_element(note, rest_length, divisions)
         measure.insert(note_index + 1, rest)
-        print("Trimmed note end, new length", trimmed_end - trimmed_start, "rest length", rest_length)
     if s or e:
         new_duration = int(trimmed_end - trimmed_start)
-        note.find("duration").text = str(new_duration)
-        note.find("type").text = NOTE_TYPES[int(4 * divisions / new_duration)]
+        set_note_duration(note, new_duration, divisions)
 
 
-def create_rest_element(rest_length, orig_note, divisions):
-    """ Takes a trimmed note and creates the rest elements that will fill in the space created by trimming.
+def set_note_duration(note, duration, divisions):
+    """ Sets a note's duration and adjusts other attributes (type, time-modification, etc.) accordingly.
 
-    :param rest_length: Length of the rest, in divisions.
-    :type rest_length: int
-    :param orig_note: The note trimmed by completeness = 'cut'
-    :type orig_note: ET.Element
+    :param note: The note trimmed by completeness = 'cut'
+    :type note: ET.Element
+    :param duration: Length of the rest, in divisions.
+    :type duration: int
+    :param divisions: The number of divisions per quarter note, specified by measure attributes.
+    :type divisions: int
+    :return: None
+    """
+    # TODO: Need to handle more subelements: stem, notations, etc..
+    # Changes the <type> element to the correct note type and handles time-modification (tuplets) if present.
+    note_denom = int(4 * divisions / duration)
+    # 1-1.66 shouldn't cause issues but instead scraps the note
+    #
+    # 1-1.167 error on 3 8 - attempts to make dotted eighth rest.
+    time_mod: ET.Element = note.find('time-modification')
+    if time_mod is not None:
+        actual_notes = int(time_mod.find('actual-notes').text)
+        normal_notes = int(time_mod.find('normal-notes').text)
+        note_denom = note_denom * normal_notes / actual_notes
+
+        normal_type = time_mod.find('normal-type')
+        if normal_type is None:
+            normal_type = ET.Element('normal-type')
+            time_mod.append(normal_type)
+        normal_type.text = note.find('type').text
+
+    # Set child element values.
+    note.find('duration').text = str(int(duration))
+    if note_denom in NOTE_TYPES:
+        note.find('type').text = NOTE_TYPES[note_denom]
+    elif int(note_denom * 3 / 2) in NOTE_TYPES:
+        note_denom = int(note_denom * 3 / 2)
+        note.find('type').text = NOTE_TYPES[note_denom]
+        type_index = list(note).index(note.find('type'))
+        note.insert(type_index + 1, ET.Element("dot"))
+
+    print(f"Set type: {NOTE_TYPES[note_denom]}, duration: {duration}")
+
+
+def create_rest_element(note, duration, divisions):
+    """ Creates the filler rests for 'cut' completeness; works off of a copy of the cut note to preserve tuplet data.
+
+    :param note: The note trimmed by completeness = 'cut'
+    :type note: ET.Element
+    :param duration: Length of the rest, in divisions.
+    :type duration: int
     :param divisions: The number of divisions per quarter note, specified by measure attributes.
     :type divisions: int
     :return: The note element with an inner "rest" tag.
     :rtype: ET.Element
     """
-    # TODO: Need to handle subelements: type (quarter, eighth, etc.), time-modification, stem, notations, etc..
-    # Copy original note, then change subelements
-    orig_note_dict = elem_to_dict(orig_note)
-    # orig_note_dict['type']['text'] =
-    orig_note_dict['duration'][0]['text'] = str(int(rest_length))
-    orig_note_dict['type'][0]['text'] = NOTE_TYPES[int(4*divisions/rest_length)]
-    note_elem = dict_to_elem('note', orig_note_dict, len(orig_note.tail) - 1)
-    return note_elem
+    new_note = copy.deepcopy(note)
+
+    if new_note.find("pitch") is not None:
+        new_note.remove(new_note.find("pitch"))
+
+    if new_note.find("notations") is not None:
+        new_note.remove(new_note.find("notations"))
+
+    new_note.insert(0, ET.Element("rest"))
+    set_note_duration(new_note, duration, divisions)
+    return new_note
 
 
 def elem_to_dict(elem):
@@ -276,37 +331,19 @@ def dict_to_elem(name, d, indent=0):
     return elem
 
 
-def insert_or_combine(parent, child):
-    """ Inserts child into parent. If an inner element of parent has the same tag as child, they are combined.
-
-    :param parent: 
-    :param child: 
-    :return: 
-    """
-    sibling = parent.find(child.tag)
-    if sibling is None:
-        parent.insert(0, child)
-    else:
-        for inner_child in child:
-            insert_or_combine(sibling, inner_child)
-
-
-def note_in_range(start_time, duration, ema_range):
-    """ Checks if the beat at given start_time and duration overlaps with the ema_range.
-
-    :param start_time: Starting time of the note, in divisions.
-    :type start_time: int
-    :param duration: Duration of the note, in divisions.
-    :type duration: int
-    :param ema_range: The EMA range requested by the user, converted into divisions.
-    :type ema_range: ema2.emaexp.EmaRange
-    :return: bool
-    """
-    end_time = start_time + duration
-    # Assume we don't need to deal with ema_range.end == 'start' or ema_range.start == 'end'
-    r1 = ema_range.end == 'end' or start_time <= ema_range.end  # Beat starts before range end
-    r2 = ema_range.start == 'start' or ema_range.start < end_time  # Range starts before beat end
-    return r1 and r2
+# def insert_or_combine(parent, child):
+#     """ Inserts child into parent. If an inner element of parent has the same tag as child, they are combined.
+# 
+#     :param parent:
+#     :param child:
+#     :return:
+#     """
+#     sibling = parent.find(child.tag)
+#     if sibling is None:
+#         parent.insert(0, child)
+#     else:
+#         for inner_child in child:
+#             insert_or_combine(sibling, inner_child)
 
 
 def remove_from_selection(note: ET.Element):
@@ -316,6 +353,7 @@ def remove_from_selection(note: ET.Element):
     :type note: ET.Element
     :return: None
     """
+    # TODO: Slurs and hairpins
     note_remove = ["pitch", "stem", "lyric"]
     for r in note_remove:
         note_elem = note.find(r)
