@@ -1,7 +1,5 @@
 from flask import Flask, send_file
 from emaMXL import slicer
-from emaMXL.emaexp import EmaExp
-from emaMXL.emaexpfull import EmaExpFull, get_score_info_mxl
 import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
@@ -9,16 +7,14 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
 def index():
-    return "Welcome to EMA"
+    return "Read the <a href=\"https://github.com/umd-mith/ema/blob/master/docs/api.md\">API specification</a>."
 
 
 @app.route('/<path:path>/<measures>/<staves>/<beats>', methods=["GET"])
 @app.route('/<path:path>/<measures>/<staves>/<beats>/<completeness>', methods=["GET"])
 def address(path, measures, staves, beats, completeness=None):
-    score = ET.parse(path)
-    ema_exp = EmaExpFull(get_score_info_mxl(score), EmaExp(measures, staves, beats, completeness))
-    file_path = slicer.slice_score(score, ema_exp)
-    return send_file(file_path)
+    tree = slicer.slice_score_path(path, "/".join([measures, staves, beats, completeness if completeness else ""]))
+    return app.response_class(ET.tostring(tree.getroot()), mimetype='application/xml')
 
 
 if __name__ == "__main__":

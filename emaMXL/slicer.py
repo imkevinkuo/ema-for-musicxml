@@ -31,6 +31,7 @@ def slice_score_path(filepath, exp_str):
     :return: An ElementTree representing the selection.
     :rtype: ET.ElementTree
     """
+    print(f"{exp_str}, {filepath}")
     tree = ET.parse(filepath)
     emaexp = EmaExp(exp_str)
     emaexp_full = EmaExpFull(get_score_info_mxl(tree), emaexp)
@@ -44,7 +45,8 @@ def slice_score(tree, ema_exp_full):
     :type tree: ET.ElementTree
     :param ema_exp_full: EmaExpFull object created by parser.py
     :type ema_exp_full: EmaExpFull
-    :return An ElementTree representing the selection.
+    :return: An ElementTree representing the selection.
+    :rtype: ET.ElementTree
     """
     parts = tree.findall("part")
     current_staff = 1
