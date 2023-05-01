@@ -1,6 +1,6 @@
 tqdm
 requests==2.22.0
-Flask==1.1.1
+Flask==2.3.2
 beautifulsoup4==4.8.2
 music21==5.7.2
 pyld==1.0.5
